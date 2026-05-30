@@ -6,7 +6,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import AnimatedTerminal from '@/components/site/AnimatedTerminal.vue';
 
 const INSTALL_CMD = 'curl -fsSL https://bul.ma/install.sh | bash';
-const GITHUB_URL = 'https://github.com/blindpay/bulma';
+const GITHUB_URL = 'https://github.com/fortheordinary/bulma';
 
 const { copy, copied } = useClipboard({ source: INSTALL_CMD, copiedDuring: 2000 });
 const copyIcon = computed<IconName>(() => (copied.value ? 'check' : 'copy'));

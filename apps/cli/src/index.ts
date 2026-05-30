@@ -26,7 +26,7 @@ Commands:
   logout              Revoke session and remove local credentials
   whoami              Show the current user
     --json            Machine-readable output
-  onboard             Open BlindPay KYC link (status arrives via email in 24h)
+  onboard             Open Bulma KYC link (status arrives via email in 24h)
     --referral <code> Apply a referral code
     --no-browser      Do not auto-open the browser
     --json            Machine-readable output
