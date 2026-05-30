@@ -4,6 +4,19 @@ on:
   push:
     branches:
       - main
+  # Manual deploy — paths-filter is bypassed; the inputs decide what ships.
+  # Use to (re)deploy when the triggering change didn't touch apps/* (e.g. a
+  # CI-only fix) or to force a redeploy.
+  workflow_dispatch:
+    inputs:
+      api:
+        description: Deploy apps/api
+        type: boolean
+        default: true
+      www:
+        description: Deploy apps/www
+        type: boolean
+        default: true
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -18,12 +31,13 @@ jobs:
     name: Path filter
     runs-on: ubuntu-latest
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      www: ${{ steps.filter.outputs.www }}
+      api: ${{ steps.decide.outputs.api }}
+      www: ${{ steps.decide.outputs.www }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: filter
+        if: github.event_name == 'push'
         with:
           base: ${{ github.ref }}
           filters: |
@@ -39,6 +53,16 @@ jobs:
               - 'bun.lock'
               - 'package.json'
               - 'turbo.json'
+      - id: decide
+        # On workflow_dispatch use the inputs; on push use the path filter.
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "api=${{ inputs.api }}" >> "$GITHUB_OUTPUT"
+            echo "www=${{ inputs.www }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "api=${{ steps.filter.outputs.api }}" >> "$GITHUB_OUTPUT"
+            echo "www=${{ steps.filter.outputs.www }}" >> "$GITHUB_OUTPUT"
+          fi
 
   ci:
     name: CI gate
