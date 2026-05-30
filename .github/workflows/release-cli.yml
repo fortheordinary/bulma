@@ -83,12 +83,15 @@ jobs:
           set -euo pipefail
           for f in dist/*; do
             name=$(basename "$f")
+            # --remote is REQUIRED: without it wrangler writes to the local
+            # miniflare simulator on the runner ("Resource location: local")
+            # and nothing reaches real R2.
             # Immutable versioned copy.
-            bunx wrangler r2 object put "${BUCKET}/${GITHUB_REF_NAME}/${name}" --file="$f"
+            bunx wrangler r2 object put "${BUCKET}/${GITHUB_REF_NAME}/${name}" --file="$f" --remote
             # latest/ overwrite (publish version dirs first so a half-uploaded
             # latest/ never points at incomplete artifacts — the loop above
             # already wrote vX.Y.Z/${name} before this line runs).
-            bunx wrangler r2 object put "${BUCKET}/latest/${name}" --file="$f"
+            bunx wrangler r2 object put "${BUCKET}/latest/${name}" --file="$f" --remote
           done
 
       - name: Smoke-test installer in clean container
