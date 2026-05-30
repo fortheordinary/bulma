@@ -34,8 +34,8 @@ jobs:
       api: ${{ steps.decide.outputs.api }}
       www: ${{ steps.decide.outputs.www }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v4
         id: filter
         if: github.event_name == 'push'
         with:

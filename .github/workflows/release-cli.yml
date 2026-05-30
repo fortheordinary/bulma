@@ -20,7 +20,7 @@ jobs:
           - { os: darwin, arch: x64,   bun: bun-darwin-x64 }
           - { os: darwin, arch: arm64, bun: bun-darwin-arm64 }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -51,7 +51,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/download-artifact@v4
         with:
@@ -119,7 +119,7 @@ jobs:
     # it can never block a binary release.
     if: ${{ vars.PUBLISH_CLAWHUB == 'true' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: oven-sh/setup-bun@v2
         with:
