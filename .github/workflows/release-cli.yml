@@ -94,6 +94,25 @@ jobs:
             bunx wrangler r2 object put "${BUCKET}/latest/${name}" --file="$f" --remote
           done
 
+      - name: Purge dl.bul.ma cache for latest/*
+        # The dl.bul.ma R2 custom domain caches at the edge, including negative
+        # (404) responses from before the bucket was populated. latest/* is
+        # overwritten every release, so purge those URLs or installs/smoke-test
+        # keep getting stale 404s. Needs the CI token to have Zone:Cache Purge.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ZONE_ID: 480e3af161327dbecbf3805e51be6b59  # bul.ma
+        run: |
+          set -euo pipefail
+          files=$(printf '"https://dl.bul.ma/latest/%s",' \
+            VERSION SHA256SUMS \
+            bulma-darwin-arm64 bulma-darwin-x64 bulma-linux-x64 bulma-linux-arm64 \
+            | sed 's/,$//')
+          curl -fsS -X POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "{\"files\":[${files}]}" | tee /dev/stderr | grep -q '"success":true'
+
       - name: Smoke-test installer in clean container
         env:
           BULMA_DL_BASE: https://dl.bul.ma
