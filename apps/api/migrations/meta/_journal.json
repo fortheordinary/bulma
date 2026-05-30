@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1779647595687,
+      "tag": "0000_phase1_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1779690222978,
+      "tag": "0001_quiet_jocasta",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779692029829,
+      "tag": "0002_phase2_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1779866205746,
+      "tag": "0003_phase3_wallet_address",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1779923610384,
+      "tag": "0004_lumpy_betty_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1779951360671,
+      "tag": "0005_overconfident_sheva_callister",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1779952427700,
+      "tag": "0006_lazy_sally_floyd",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1780117292764,
+      "tag": "0007_chilly_luminals",
+      "breakpoints": true
+    }
+  ]
+}

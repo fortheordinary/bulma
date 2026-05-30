@@ -1,0 +1,10 @@
+#!/bin/sh
+# Enforce the repo's single commit identity. All commits MUST be authored by
+# agent@bul.ma — see AGENTS.md §"Commit identity".
+required="agent@bul.ma"
+actual="$(git config user.email)"
+if [ "$actual" != "$required" ]; then
+  echo "✖ commit blocked: user.email is '${actual:-<unset>}', must be '$required'" >&2
+  echo "  fix: git config user.email $required" >&2
+  exit 1
+fi

@@ -1,0 +1,213 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+  --color-terminal: var(--terminal);
+  --color-terminal-foreground: var(--terminal-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', 'Cascadia Code', 'Fira Code', Menlo, monospace;
+}
+
+/* Palette sampled from Google AI Studio (Material 3). Light theme below for
+   completeness; the site is forced to dark via <html class="dark">. */
+:root {
+  --background: #ffffff;
+  --foreground: #1f1f1f;
+  --card: #ffffff;
+  --card-foreground: #1f1f1f;
+  --popover: #ffffff;
+  --popover-foreground: #1f1f1f;
+  --primary: #ff5e1f; /* Cloudflare / YC orange */
+  --primary-foreground: #ffffff;
+  --secondary: #f0f4f9;
+  --secondary-foreground: #1f1f1f;
+  --muted: #f0f4f9;
+  --muted-foreground: #5f6368;
+  --accent: #fff1e6;
+  --accent-foreground: #b3560a;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --border: #dde3ea;
+  --input: #dde3ea;
+  --ring: #ff5e1f;
+  --radius: 0.625rem;
+
+  /* Brand — Cloudflare / YC orange */
+  --brand: #ff5e1f;
+  --brand-foreground: #ffffff;
+  --brand-muted: #fff1e6;
+
+  /* Terminal surface (stays dark in either theme) */
+  --terminal: #1e1f20;
+  --terminal-foreground: #e3e3e3;
+}
+
+.dark {
+  --background: #131314; /* AI Studio app background */
+  --foreground: #e3e3e3;
+  --card: #1e1f20; /* panel / surface */
+  --card-foreground: #e3e3e3;
+  --popover: #1e1f20;
+  --popover-foreground: #e3e3e3;
+  --primary: #ff5e1f; /* Cloudflare / YC orange */
+  --primary-foreground: #ffffff;
+  --secondary: #282a2c;
+  --secondary-foreground: #e3e3e3;
+  --muted: #282a2c;
+  --muted-foreground: #9aa0a6;
+  --accent: #333537;
+  --accent-foreground: #e3e3e3;
+  --destructive: #f2b8b5;
+  --destructive-foreground: #601410;
+  --border: #444746;
+  --input: #2d2f31;
+  --ring: #ff5e1f;
+
+  /* Brand — Cloudflare / YC orange */
+  --brand: #ff5e1f;
+  --brand-foreground: #ffffff;
+  --brand-muted: #3a2410;
+
+  /* Terminal surface */
+  --terminal: #1e1f20;
+  --terminal-foreground: #e3e3e3;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+}
+
+/* ---- Marketing utilities ---- */
+
+/* Terminal bezel — Claude.ai-style: soft drop + 0.5px hairline ring as the
+   base, plus a lighter inset top-edge highlight and darker inset bottom-edge
+   shadow so the panel reads as bevelled. */
+.terminal-bezel {
+  box-shadow:
+    /* soft drop */
+    0 0.25rem 1.25rem rgba(0, 0, 0, 0.45),
+    /* half-pixel hairline ring */
+    0 0 0 0.5px rgba(255, 255, 255, 0.15),
+    /* top edge: lighter inset highlight (outset light) */
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
+    /* bottom edge: darker inset shadow (inset depth) */
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.5);
+  transition: box-shadow 200ms ease;
+}
+.terminal-bezel:hover {
+  box-shadow:
+    0 0.5rem 1.75rem rgba(0, 0, 0, 0.55),
+    0 0 0 0.5px rgba(255, 255, 255, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.11),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Soft warm gradient wash behind the hero, à la cloudflare.com */
+.bg-hero-wash {
+  background:
+    radial-gradient(
+      60% 50% at 50% 0%,
+      color-mix(in oklch, var(--brand) 16%, transparent) 0%,
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--brand) 6%, var(--background)) 0%,
+      var(--background) 55%
+    );
+}
+
+/* Faint dotted grid overlay */
+.bg-dot-grid {
+  background-image: radial-gradient(
+    color-mix(in oklch, var(--foreground) 10%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+.text-gradient-brand {
+  background: linear-gradient(
+    100deg,
+    var(--brand) 0%,
+    color-mix(in oklch, var(--brand) 55%, var(--foreground)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes blink-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+.animate-caret {
+  animation: blink-caret 1s steps(1) infinite;
+}
+
+@keyframes float-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-float-up {
+  animation: float-up 0.5s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-caret,
+  .animate-float-up {
+    animation: none;
+  }
+}

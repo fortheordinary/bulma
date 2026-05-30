@@ -1,0 +1,61 @@
+name: Monorepo Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  changes:
+    name: Path filter
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      www: ${{ steps.filter.outputs.www }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: ${{ github.ref }}
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'packages/**'
+              - 'bun.lock'
+              - 'package.json'
+              - 'turbo.json'
+            www:
+              - 'apps/www/**'
+              - 'packages/**'
+              - 'bun.lock'
+              - 'package.json'
+              - 'turbo.json'
+
+  ci:
+    name: CI gate
+    uses: ./.github/workflows/ci.yml
+
+  api-deploy:
+    needs: [changes, ci]
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    secrets: inherit
+    uses: ./.github/workflows/deploy.yml
+    with:
+      APP_NAME: api
+
+  www-deploy:
+    needs: [changes, ci]
+    if: ${{ needs.changes.outputs.www == 'true' }}
+    secrets: inherit
+    uses: ./.github/workflows/deploy.yml
+    with:
+      APP_NAME: www

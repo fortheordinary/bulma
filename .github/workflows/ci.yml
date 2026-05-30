@@ -1,0 +1,24 @@
+name: CI
+
+# Quality gate: typecheck + lint + format + tests. Runs on every PR, and is
+# called by the deploy pipeline (prepare.yml) before any deploy job runs.
+on:
+  pull_request:
+  workflow_call:
+
+jobs:
+  check:
+    name: Typecheck, lint, format, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.19"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck, lint, format, test
+        run: bunx turbo run typecheck lint format:check test

@@ -1,0 +1,31 @@
+{
+  "name": "cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "bulma": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --target=bun --outdir=dist --define process.env.BULMA_VERSION=\"\\\"${BULMA_VERSION:-dev}\\\"\"",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../packages/oxc/.oxlintrc.json src",
+    "format": "oxfmt --write src",
+    "format:check": "oxfmt --check src",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@bulma/typescript-config": "workspace:*",
+    "@bulma/oxc-config": "workspace:*",
+    "bun-types": "^1.2.0",
+    "oxlint": "^0.15.6",
+    "oxfmt": "^0.1.0",
+    "typescript": "^5.7.2"
+  }
+}

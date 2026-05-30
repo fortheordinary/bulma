@@ -1,0 +1,17 @@
+node_modules
+dist
+.turbo
+.wrangler
+.dev.vars
+*.log
+.DS_Store
+.env
+.env.local
+.env.infisical
+.infisical.json
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+bun.lockb
+coverage
+*.tsbuildinfo
+.claude

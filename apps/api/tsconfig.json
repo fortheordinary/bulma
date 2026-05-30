@@ -1,0 +1,5 @@
+{
+  "extends": "@bulma/typescript-config/worker.json",
+  "include": ["src/**/*.ts", "worker-configuration.d.ts"],
+  "exclude": ["node_modules", "dist", ".wrangler"]
+}

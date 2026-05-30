@@ -1,0 +1,51 @@
+# Top-level config is the LOCAL/dev target (`wrangler dev`, `db:migrate:local`).
+# The deployed target is the named [env.production] block below — CI deploys with
+# `--env production`. Named envs do NOT inherit vars/d1/triggers/observability,
+# so those are duplicated there.
+name = "bulma-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+# Nightly referral forfeit sweep (src/index.ts scheduled handler).
+[triggers]
+crons = ["0 3 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bulma"
+# Placeholder: local D1 (miniflare) ignores the id; remote ops use --env production.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+ENVIRONMENT = "development"
+
+# ── Production (deployed via `wrangler deploy --env production`) ──────────────
+[env.production]
+name = "bulma-api"
+
+# Custom domain — wrangler binds api.bul.ma to this Worker and manages the DNS
+# record + cert on deploy. Requires the CI token to have Workers Routes:Edit and
+# Zone DNS:Edit on the bul.ma zone.
+[[env.production.routes]]
+pattern = "api.bul.ma"
+custom_domain = true
+
+[env.production.observability]
+enabled = true
+
+[env.production.triggers]
+crons = ["0 3 * * *"]
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "bulma"
+database_id = "bddbf6ac-a14e-4459-92ad-93c3f48d3ba5"
+migrations_dir = "migrations"
+
+[env.production.vars]
+ENVIRONMENT = "production"

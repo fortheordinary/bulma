@@ -1,0 +1,109 @@
+name: Deploy Worker
+
+on:
+  workflow_call:
+    inputs:
+      APP_NAME:
+        required: true
+        type: string
+      INFISICAL_ENV:
+        required: false
+        type: string
+        default: prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ secrets.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ inputs.INFISICAL_ENV }}
+          # Secrets are namespaced per app: apps/api → /api, apps/www → /www.
+          secret-path: "/${{ inputs.APP_NAME }}"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.19"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build (www only)
+        if: ${{ inputs.APP_NAME == 'www' }}
+        run: bun run build --filter=www
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          # www reads VITE_API_URL at build time (apps/www/src/lib/{api,auth-client}.ts);
+          # without it the bundle defaults to http://localhost:8787. The Infisical
+          # fetch above pulls the /www folder, which provides VITE_API_URL.
+          VITE_API_URL: ${{ env.VITE_API_URL }}
+
+      - name: Apply D1 migrations (api only)
+        if: ${{ inputs.APP_NAME == 'api' }}
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler d1 migrations apply bulma --remote --yes --env production
+
+      - name: Push Worker secrets (api only)
+        if: ${{ inputs.APP_NAME == 'api' }}
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BETTER_AUTH_SECRET: ${{ env.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ env.BETTER_AUTH_URL }}
+          WWW_URL: ${{ env.WWW_URL }}
+          GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
+          BLINDPAY_API_KEY: ${{ env.BLINDPAY_API_KEY }}
+          BLINDPAY_INSTANCE_ID: ${{ env.BLINDPAY_INSTANCE_ID }}
+          BLINDPAY_API_URL: ${{ env.BLINDPAY_API_URL }}
+          BLINDPAY_NETWORK: ${{ env.BLINDPAY_NETWORK }}
+          BLINDPAY_TOKEN: ${{ env.BLINDPAY_TOKEN }}
+          BLINDPAY_WEBHOOK_SECRET: ${{ env.BLINDPAY_WEBHOOK_SECRET }}
+          BLINDPAY_HOSTED_INVITE_URL: ${{ env.BLINDPAY_HOSTED_INVITE_URL }}
+          BLINDPAY_PARTNER_FEE_ID_FREE: ${{ env.BLINDPAY_PARTNER_FEE_ID_FREE }}
+          BLINDPAY_PARTNER_FEE_ID_PAID: ${{ env.BLINDPAY_PARTNER_FEE_ID_PAID }}
+        run: |
+          cat <<EOF > /tmp/secrets.json
+          {
+            "BETTER_AUTH_SECRET": "${BETTER_AUTH_SECRET}",
+            "BETTER_AUTH_URL": "${BETTER_AUTH_URL}",
+            "WWW_URL": "${WWW_URL}",
+            "GOOGLE_CLIENT_ID": "${GOOGLE_CLIENT_ID}",
+            "GOOGLE_CLIENT_SECRET": "${GOOGLE_CLIENT_SECRET}",
+            "BLINDPAY_API_KEY": "${BLINDPAY_API_KEY}",
+            "BLINDPAY_INSTANCE_ID": "${BLINDPAY_INSTANCE_ID}",
+            "BLINDPAY_API_URL": "${BLINDPAY_API_URL}",
+            "BLINDPAY_NETWORK": "${BLINDPAY_NETWORK}",
+            "BLINDPAY_TOKEN": "${BLINDPAY_TOKEN}",
+            "BLINDPAY_WEBHOOK_SECRET": "${BLINDPAY_WEBHOOK_SECRET}",
+            "BLINDPAY_HOSTED_INVITE_URL": "${BLINDPAY_HOSTED_INVITE_URL}",
+            "BLINDPAY_PARTNER_FEE_ID_FREE": "${BLINDPAY_PARTNER_FEE_ID_FREE}",
+            "BLINDPAY_PARTNER_FEE_ID_PAID": "${BLINDPAY_PARTNER_FEE_ID_PAID}"
+          }
+          EOF
+          bunx wrangler secret bulk /tmp/secrets.json --env production
+          rm /tmp/secrets.json
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: "apps/${{ inputs.APP_NAME }}"
+          packageManager: bun
+          # api ships to the named production env; www has no named env (default).
+          command: ${{ inputs.APP_NAME == 'api' && 'deploy --env production' || 'deploy' }}

@@ -1,0 +1,42 @@
+# GitHub auto-generated release notes config.
+# Drives the "What's Changed" body when a release is cut with
+# `generate_release_notes: true` (see release-cli.yml) or
+# `gh release create --generate-notes`. Notes are built from merged PRs since the
+# previous tag, grouped by the PR's labels into the categories below.
+# Docs: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+    authors:
+      - dependabot
+      - github-actions
+  categories:
+    - title: ⚠️ Breaking Changes
+      labels:
+        - breaking
+        - breaking-change
+    - title: 🚀 Features
+      labels:
+        - feature
+        - feat
+        - enhancement
+    - title: 🐛 Fixes
+      labels:
+        - fix
+        - bug
+    - title: 🔒 Security
+      labels:
+        - security
+    - title: 🧹 Maintenance
+      labels:
+        - chore
+        - ci
+        - docs
+        - refactor
+        - test
+        - deps
+    # Catch-all: any merged PR whose labels matched none of the above.
+    - title: Other Changes
+      labels:
+        - "*"

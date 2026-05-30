@@ -1,0 +1,1 @@
+ALTER TABLE `quotes` ADD `partner_fee_id` text;

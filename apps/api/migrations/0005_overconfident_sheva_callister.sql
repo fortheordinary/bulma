@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `user_profile_receiver_id_unique` ON `user_profile` (`receiver_id`);

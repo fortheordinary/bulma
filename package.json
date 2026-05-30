@@ -1,0 +1,27 @@
+{
+  "name": "bulma",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Agentic global account for remote workers",
+  "type": "module",
+  "packageManager": "bun@1.2.19",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "www",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "deploy": "wrangler deploy",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "oxlint -c ../../packages/oxc/.oxlintrc.json src",
+    "format": "oxfmt --write src",
+    "format:check": "oxfmt --check src",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.3.0",
+    "better-auth": "^1.6.11",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-vue-next": "^0.469.0",
+    "reka-ui": "^2.1.0",
+    "tailwind-merge": "^2.6.0",
+    "vue": "^3.6.0-beta.4",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@bulma/oxc-config": "workspace:*",
+    "@bulma/typescript-config": "workspace:*",
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-vue": "^6.0.0-beta.0",
+    "oxfmt": "^0.1.0",
+    "oxlint": "^0.15.6",
+    "playwright": "^1.60.0",
+    "tailwindcss": "^4.0.0",
+    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vue-tsc": "^2.2.0",
+    "wrangler": "^4.95.0"
+  }
+}

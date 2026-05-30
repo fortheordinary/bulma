@@ -1,0 +1,146 @@
+name: Release CLI
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.target.os }}/${{ matrix.target.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - { os: linux,  arch: x64,   bun: bun-linux-x64 }
+          - { os: linux,  arch: arm64, bun: bun-linux-arm64 }
+          - { os: darwin, arch: x64,   bun: bun-darwin-x64 }
+          - { os: darwin, arch: arm64, bun: bun-darwin-arm64 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.19"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile binary
+        working-directory: apps/cli
+        env:
+          BULMA_VERSION: ${{ github.ref_name }}
+        run: |
+          bun build src/index.ts \
+            --compile --minify \
+            --target=${{ matrix.target.bun }} \
+            --define process.env.BULMA_VERSION="\"${BULMA_VERSION}\"" \
+            --outfile=bulma-${{ matrix.target.os }}-${{ matrix.target.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bulma-${{ matrix.target.os }}-${{ matrix.target.arch }}
+          path: apps/cli/bulma-${{ matrix.target.os }}-${{ matrix.target.arch }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish to R2 + GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts + write SHA256SUMS + VERSION
+        run: |
+          mkdir -p dist
+          find artifacts -mindepth 2 -type f -exec mv {} dist/ \;
+          cd dist
+          if command -v sha256sum >/dev/null; then
+            sha256sum bulma-* > SHA256SUMS
+          else
+            shasum -a 256 bulma-* > SHA256SUMS
+          fi
+          echo "${GITHUB_REF_NAME}" > VERSION
+          ls -lah
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.19"
+
+      - name: Upload to R2 (vX.Y.Z/* + latest/*)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BUCKET: bulma-cli-prod
+        run: |
+          set -euo pipefail
+          for f in dist/*; do
+            name=$(basename "$f")
+            # Immutable versioned copy.
+            bunx wrangler r2 object put "${BUCKET}/${GITHUB_REF_NAME}/${name}" --file="$f"
+            # latest/ overwrite (publish version dirs first so a half-uploaded
+            # latest/ never points at incomplete artifacts — the loop above
+            # already wrote vX.Y.Z/${name} before this line runs).
+            bunx wrangler r2 object put "${BUCKET}/latest/${name}" --file="$f"
+          done
+
+      - name: Smoke-test installer in clean container
+        env:
+          BULMA_DL_BASE: https://dl.bul.ma
+        run: |
+          docker run --rm -e BULMA_DL_BASE="$BULMA_DL_BASE" ubuntu:22.04 bash -c '
+            set -euo pipefail
+            apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
+            curl -fsSL https://bul.ma/install.sh | bash
+            bulma version
+          '
+
+      - name: Create GitHub Release with binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/bulma-*
+            dist/SHA256SUMS
+          generate_release_notes: true
+
+  publish-skill:
+    name: Publish skill to ClawHub
+    needs: publish
+    runs-on: ubuntu-latest
+    # Opt-in: set repo variable PUBLISH_CLAWHUB=true once the ClawHub CLI install
+    # method + auth secret below are confirmed. Until then this job is skipped so
+    # it can never block a binary release.
+    if: ${{ vars.PUBLISH_CLAWHUB == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.19"
+
+      - name: Stamp skill version from tag
+        run: |
+          set -euo pipefail
+          # Single source of truth = the git tag (same as the binary's
+          # BULMA_VERSION). Strip the leading "v"; ClawHub wants bare semver.
+          VERSION_NUM="${GITHUB_REF_NAME#v}"
+          sed -i -E "s/^version:.*/version: ${VERSION_NUM}/" apps/cli/skill/SKILL.md
+          grep '^version:' apps/cli/skill/SKILL.md
+
+      - name: Publish to ClawHub
+        env:
+          # TODO(verify): confirm the ClawHub CLI package name + the token env it
+          # reads. Set CLAWHUB_TOKEN in repo secrets before enabling this job.
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION_NUM="${GITHUB_REF_NAME#v}"
+          bunx clawhub@latest skill publish ./apps/cli/skill \
+            --slug bulma --name bulma --version "${VERSION_NUM}"

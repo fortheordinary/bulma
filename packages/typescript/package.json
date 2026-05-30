@@ -1,0 +1,12 @@
+{
+  "name": "@bulma/typescript-config",
+  "version": "0.0.1",
+  "private": true,
+  "license": "UNLICENSED",
+  "files": [
+    "base.json",
+    "worker.json",
+    "cli.json",
+    "vue.json"
+  ]
+}

@@ -1,0 +1,19 @@
+export type Bindings = {
+  DB: D1Database
+  ENVIRONMENT: string
+  BETTER_AUTH_SECRET: string
+  BETTER_AUTH_URL: string
+  WWW_URL: string
+  GOOGLE_CLIENT_ID: string
+  GOOGLE_CLIENT_SECRET: string
+  BLINDPAY_API_KEY: string
+  BLINDPAY_INSTANCE_ID: string
+  BLINDPAY_API_URL: string
+  BLINDPAY_NETWORK: string
+  BLINDPAY_TOKEN: string
+  BLINDPAY_WEBHOOK_SECRET: string
+  BLINDPAY_HOSTED_INVITE_URL: string
+  BLINDPAY_PARTNER_FEE_ID_FREE: string
+  BLINDPAY_PARTNER_FEE_ID_PAID: string
+  LOG_LEVEL?: string
+}
