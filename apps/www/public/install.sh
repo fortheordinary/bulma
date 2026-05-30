@@ -44,24 +44,24 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
 echo "==> Downloading $target ($VERSION_REQ)"
-curl -fsSL "$src"      -o "$tmp/bulma"      || err "download failed: $src"
+curl -fsSL "$src"      -o "$tmp/$target"      || err "download failed: $src"
 curl -fsSL "$sums_src" -o "$tmp/SHA256SUMS" || err "checksum download failed: $sums_src"
 
 echo "==> Verifying checksum"
 (cd "$tmp" && grep " $target\$" SHA256SUMS | $sha_cmd) \
   || err "checksum mismatch — refusing to install"
 
-chmod +x "$tmp/bulma"
+chmod +x "$tmp/$target"
 
 echo "==> Installing to $PREFIX/bulma"
 if [ -w "$PREFIX" ]; then
-  mv "$tmp/bulma" "$PREFIX/bulma"
+  mv "$tmp/$target" "$PREFIX/bulma"
 elif command -v sudo >/dev/null 2>&1; then
-  sudo mv "$tmp/bulma" "$PREFIX/bulma"
+  sudo mv "$tmp/$target" "$PREFIX/bulma"
 else
   alt="$HOME/.local/bin"
   mkdir -p "$alt"
-  mv "$tmp/bulma" "$alt/bulma"
+  mv "$tmp/$target" "$alt/bulma"
   PREFIX="$alt"
   echo "==> No write access to /usr/local/bin and no sudo; installed to $alt"
   case ":$PATH:" in
