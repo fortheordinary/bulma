@@ -40,7 +40,7 @@ jobs:
             --define process.env.BULMA_VERSION="\"${BULMA_VERSION}\"" \
             --outfile=bulma-${{ matrix.target.os }}-${{ matrix.target.arch }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bulma-${{ matrix.target.os }}-${{ matrix.target.arch }}
           path: apps/cli/bulma-${{ matrix.target.os }}-${{ matrix.target.arch }}
@@ -53,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
 
