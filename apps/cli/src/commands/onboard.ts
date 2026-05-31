@@ -1,6 +1,16 @@
+import { createInterface } from "node:readline/promises"
 import { z } from "zod"
 import { loadCredentials } from "../lib/credentials"
 import { openBrowser } from "../lib/browser"
+
+async function promptLine(question: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    return (await rl.question(question)).trim()
+  } finally {
+    rl.close()
+  }
+}
 
 const StartResponse = z.object({
   state: z.enum(["none", "pending", "approved", "rejected", "ready"]),
@@ -20,15 +30,20 @@ export async function onboard(opts: OnboardOptions = {}): Promise<number> {
     return 3
   }
 
+  // A referral code is required to onboard. Prompt for it when not passed via
+  // --referral and we're in an interactive (non-JSON) session.
+  let referralCode = opts.referralCode
+  if (!referralCode && !opts.json) {
+    referralCode = (await promptLine("Referral code: ")) || undefined
+  }
+
   const startRes = await fetch(`${creds.apiUrl}/onboard/start`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${creds.sessionToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(
-      opts.referralCode ? { referralCode: opts.referralCode } : {},
-    ),
+    body: JSON.stringify(referralCode ? { referralCode } : {}),
   })
 
   if (startRes.status === 401) {
@@ -38,11 +53,13 @@ export async function onboard(opts: OnboardOptions = {}): Promise<number> {
   if (startRes.status === 400 || startRes.status === 409) {
     const body = (await startRes.json().catch(() => ({}))) as { error?: string }
     const msg =
-      body.error === "self_referral"
-        ? "You can't use your own referral code."
-        : body.error === "code_taken"
-          ? "That referral code was already used."
-          : "Invalid referral code."
+      body.error === "referral_required"
+        ? "A referral code is required to onboard. Run `bulma onboard --referral <code>`."
+        : body.error === "self_referral"
+          ? "You can't use your own referral code."
+          : body.error === "code_taken"
+            ? "That referral code was already used."
+            : "Invalid referral code."
     console.error(msg)
     return 4
   }

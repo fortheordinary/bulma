@@ -97,10 +97,15 @@ webhooks.openapi(route, async (c) => {
     return c.json({ error: "malformed_payload" }, 400)
   }
 
-  const eventType =
-    typeof event === "object" && event !== null && "event_type" in event
-      ? String((event as { event_type: unknown }).event_type)
-      : "unknown"
+  // BlindPay sends a flat payload with the event type in `webhook_event`
+  // (e.g. "receiver.update"). Accept `event_type` too for forward-compat.
+  const eventRecord =
+    typeof event === "object" && event !== null
+      ? event as Record<string, unknown>
+      : {}
+  const eventType = String(
+    eventRecord.webhook_event ?? eventRecord.event_type ?? "unknown",
+  )
 
   await db.insert(webhookEvents).values({
     id: svixId,
@@ -165,17 +170,19 @@ async function dispatch(
   }
 }
 
-const ReceiverEventSchema = z.object({
-  event_type: z.string(),
-  data: z
-    .object({
-      id: z.string(),
-      email: z.string().email().optional(),
-      kyc_status: z.enum(["verifying", "approved", "rejected"]).optional(),
-      country: z.string().optional(),
-    })
-    .passthrough(),
-})
+// BlindPay receiver payloads are flat: the receiver object's fields sit at the
+// top level of the webhook body (no `data` envelope). kyc_status is read as a
+// free string and narrowed below so an unmodeled status can't fail the parse.
+const ReceiverEventSchema = z
+  .object({
+    id: z.string(),
+    email: z.string().email().optional(),
+    kyc_status: z.string().optional(),
+    country: z.string().optional(),
+  })
+  .passthrough()
+
+const KYC_STATES = ["verifying", "approved", "rejected"] as const
 
 async function onReceiverEvent(
   event: unknown,
@@ -185,7 +192,7 @@ async function onReceiverEvent(
   const parsed = ReceiverEventSchema.safeParse(event)
   if (!parsed.success) return
 
-  const { data } = parsed.data
+  const data = parsed.data
   const userId = await findUserIdForReceiver(data, db)
   if (!userId) {
     console.warn("webhook: no matching user for receiver", {
@@ -194,12 +201,18 @@ async function onReceiverEvent(
     return
   }
 
+  const kycStatus = (KYC_STATES as readonly string[]).includes(
+    data.kyc_status ?? "",
+  )
+    ? data.kyc_status as typeof KYC_STATES[number]
+    : undefined
+
   await applyReceiverStateForUser(
     userId,
     {
       id: data.id,
       email: data.email,
-      kyc_status: data.kyc_status,
+      kyc_status: kycStatus,
       country: data.country,
     },
     env,
@@ -207,15 +220,13 @@ async function onReceiverEvent(
   )
 }
 
-const PayoutEventSchema = z.object({
-  event_type: z.string(),
-  data: z
-    .object({
-      id: z.string(),
-      status: z.string().optional(),
-    })
-    .passthrough(),
-})
+// Flat payload (see ReceiverEventSchema): payout fields at the top level.
+const PayoutEventSchema = z
+  .object({
+    id: z.string(),
+    status: z.string().optional(),
+  })
+  .passthrough()
 
 // payout.new/update/complete → flip the local payout's status. Only our own
 // tracked payouts (by `po_` id) are updated; unknown ids are ignored.
@@ -225,7 +236,7 @@ async function onPayoutEvent(
 ): Promise<void> {
   const parsed = PayoutEventSchema.safeParse(event)
   if (!parsed.success) return
-  const { data } = parsed.data
+  const data = parsed.data
   if (!data.status) return
 
   // Guard against out-of-order events clobbering a terminal status. Once a
@@ -251,9 +262,10 @@ async function onPayoutEvent(
   }
 }
 
-const TosEventSchema = z.object({
-  data: z.object({ receiver_id: z.string().optional() }).passthrough(),
-})
+// Flat payload (see ReceiverEventSchema): receiver_id at the top level.
+const TosEventSchema = z
+  .object({ receiver_id: z.string().optional() })
+  .passthrough()
 
 async function onTosAccept(
   event: unknown,
