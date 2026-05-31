@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi"
 import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
-import { userProfile } from "../db/schema"
+import { userProfile, referralCodes } from "../db/schema"
 import { createBlindPay, BlindPayError } from "../lib/blindpay"
 import { attachReferralCode } from "../lib/referrals"
 import { requireUser, type AuthContext } from "../middleware/require-user"
@@ -69,7 +69,7 @@ const startRoute = createRoute({
     },
     400: {
       content: { "application/json": { schema: ErrorResponse } },
-      description: "Invalid / self referral code",
+      description: "Missing / invalid / self referral code",
     },
     409: {
       content: { "application/json": { schema: ErrorResponse } },
@@ -103,15 +103,25 @@ onboard.openapi(startRoute, async (c) => {
     return c.json({ state: "ready" as const }, 200)
   }
 
-  // Optional referral code: attach this user as the referee (converts on ready).
-  const body = (await c.req.json().catch(() => ({}))) as {
-    referralCode?: unknown
-  }
-  const referralCode =
-    typeof body.referralCode === "string"
-      ? body.referralCode.trim().toUpperCase()
-      : undefined
-  if (referralCode) {
+  // Mandatory referral: every new user must attach a valid code before KYC.
+  // A user who already attached on an earlier /start (re-running while pending)
+  // is exempt — they don't need to re-supply the code.
+  const alreadyAttached = await db
+    .select({ id: referralCodes.id })
+    .from(referralCodes)
+    .where(eq(referralCodes.convertedUserId, user.id))
+    .get()
+  if (!alreadyAttached) {
+    const body = (await c.req.json().catch(() => ({}))) as {
+      referralCode?: unknown
+    }
+    const referralCode =
+      typeof body.referralCode === "string"
+        ? body.referralCode.trim().toUpperCase()
+        : undefined
+    if (!referralCode) {
+      return c.json({ error: "referral_required" }, 400)
+    }
     const result = await attachReferralCode(db, referralCode, user.id)
     if (result === "self_referral") {
       return c.json({ error: "self_referral" }, 400)
