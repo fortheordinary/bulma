@@ -101,7 +101,7 @@ webhooks.openapi(route, async (c) => {
   // (e.g. "receiver.update"). Accept `event_type` too for forward-compat.
   const eventRecord =
     typeof event === "object" && event !== null
-      ? (event as Record<string, unknown>)
+      ? event as Record<string, unknown>
       : {}
   const eventType = String(
     eventRecord.webhook_event ?? eventRecord.event_type ?? "unknown",
@@ -204,7 +204,7 @@ async function onReceiverEvent(
   const kycStatus = (KYC_STATES as readonly string[]).includes(
     data.kyc_status ?? "",
   )
-    ? (data.kyc_status as (typeof KYC_STATES)[number])
+    ? data.kyc_status as typeof KYC_STATES[number]
     : undefined
 
   await applyReceiverStateForUser(
