@@ -34,13 +34,16 @@ export function pickManagedWallet(
 }
 
 /**
- * Virtual accounts are US-only (SSN/EIN). Missing country → attempt (BlindPay is
- * the final arbiter); an explicit non-US country → skip the VA step entirely.
+ * Every receiver gets a US virtual account: BlindPay always issues it in the US
+ * (jpmorgan) regardless of the receiver's own country (BR, AR, US, …). So the
+ * VA step is always attempted — the receiver's country is irrelevant, and
+ * BlindPay is the final arbiter. The `country` arg is kept for call-site
+ * compatibility but no longer gates eligibility.
  */
 export function isVirtualAccountEligible(
-  country: string | null | undefined,
+  _country: string | null | undefined,
 ): boolean {
-  return country == null || country.toUpperCase() === "US"
+  return true
 }
 
 const VirtualAccountPlanSchema = z.discriminatedUnion("kind", [

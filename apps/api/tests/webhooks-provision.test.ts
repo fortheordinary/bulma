@@ -24,19 +24,13 @@ describe('pickManagedWallet (idempotency: no double-provisioning)', () => {
 });
 
 describe('isVirtualAccountEligible', () => {
-  it('US (any case) is eligible', () => {
+  it('is eligible for any country (BlindPay always issues a US VA)', () => {
     expect(isVirtualAccountEligible('US')).toBe(true);
     expect(isVirtualAccountEligible('us')).toBe(true);
-  });
-
-  it('missing country attempts (BlindPay is the final arbiter)', () => {
     expect(isVirtualAccountEligible(undefined)).toBe(true);
     expect(isVirtualAccountEligible(null)).toBe(true);
-  });
-
-  it('explicit non-US is ineligible', () => {
-    expect(isVirtualAccountEligible('BR')).toBe(false);
-    expect(isVirtualAccountEligible('MX')).toBe(false);
+    expect(isVirtualAccountEligible('BR')).toBe(true);
+    expect(isVirtualAccountEligible('MX')).toBe(true);
   });
 });
 
