@@ -9,30 +9,58 @@ const Rail = z
   })
   .nullable()
 
+const Party = z
+  .object({
+    name: z.string().nullable(),
+    addressLine1: z.string().nullable(),
+    addressLine2: z.string().nullable(),
+    city: z.string().nullable(),
+    stateProvinceRegion: z.string().nullable(),
+    country: z.string().nullable(),
+    postalCode: z.string().nullable(),
+  })
+  .nullable()
+
 const VirtualAccountResponse = z.object({
   status: z.string().nullable(),
   ach: Rail,
   wire: Rail,
   rtp: Rail,
-  beneficiary: z.unknown().nullable(),
+  swiftBicCode: z.string().nullable(),
+  beneficiary: Party,
+  receivingBank: Party,
   accountType: z.string().nullable(),
 })
 
 type RailValue = z.infer<typeof Rail>
+type PartyValue = z.infer<typeof Party>
 
 type AccountOptions = {
-  showFull?: boolean
   json?: boolean
 }
 
-function printRail(label: string, rail: RailValue, showFull: boolean): void {
+function printRail(label: string, rail: RailValue): void {
   if (!rail) return
-  const acct = showFull
-    ? (rail.accountNumber ?? rail.accountNumberMasked ?? "—")
-    : (rail.accountNumberMasked ?? "—")
+  const acct = rail.accountNumber ?? rail.accountNumberMasked ?? "—"
   console.log(`${label}`)
   console.log(`  Routing number:  ${rail.routingNumber ?? "—"}`)
   console.log(`  Account number:  ${acct}`)
+}
+
+function printParty(label: string, party: PartyValue): void {
+  if (!party) return
+  const lines = [
+    party.name,
+    party.addressLine1,
+    party.addressLine2,
+    [party.city, party.stateProvinceRegion, party.postalCode]
+      .filter(Boolean)
+      .join(", "),
+    party.country,
+  ].filter((l): l is string => !!l && l.trim().length > 0)
+  if (lines.length === 0) return
+  console.log(`${label}`)
+  for (const line of lines) console.log(`  ${line}`)
 }
 
 export async function account(opts: AccountOptions = {}): Promise<number> {
@@ -42,9 +70,7 @@ export async function account(opts: AccountOptions = {}): Promise<number> {
     return 3
   }
 
-  const url = `${creds.apiUrl}/accounts/virtual${
-    opts.showFull ? "?reveal=1" : ""
-  }`
+  const url = `${creds.apiUrl}/accounts/virtual?reveal=1`
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${creds.sessionToken}` },
   })
@@ -76,12 +102,13 @@ export async function account(opts: AccountOptions = {}): Promise<number> {
 
   console.log("US Account")
   console.log("==========")
-  printRail("ACH", va.ach, !!opts.showFull)
-  printRail("Wire", va.wire, !!opts.showFull)
-  printRail("RTP", va.rtp, !!opts.showFull)
+  printRail("ACH", va.ach)
+  printRail("Wire", va.wire)
+  printRail("RTP", va.rtp)
   if (va.accountType) console.log(`Account type:    ${va.accountType}`)
-  if (!opts.showFull) {
-    console.log("(run `bulma account --show-full` to reveal full numbers)")
-  }
+  if (va.swiftBicCode) console.log(`SWIFT/BIC:       ${va.swiftBicCode}`)
+  if (va.beneficiary || va.receivingBank) console.log("")
+  printParty("Beneficiary", va.beneficiary)
+  printParty("Receiving bank", va.receivingBank)
   return 0
 }

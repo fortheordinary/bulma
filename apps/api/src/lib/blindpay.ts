@@ -50,6 +50,22 @@ const UsRailSchema = z
   })
   .passthrough()
 
+// Beneficiary (account holder) and receiving-bank parties. The payer needs the
+// full name + address of both to wire salary. Every field is optional — BlindPay
+// only populates what the banking partner returns — and passthrough preserves
+// anything we don't model.
+const UsPartySchema = z
+  .object({
+    name: z.string().nullable().optional(),
+    address_line_1: z.string().nullable().optional(),
+    address_line_2: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    state_province_region: z.string().nullable().optional(),
+    country: z.string().nullable().optional(),
+    postal_code: z.string().nullable().optional(),
+  })
+  .passthrough()
+
 const VirtualAccountResponse = z
   .object({
     id: z.string(),
@@ -64,8 +80,8 @@ const VirtualAccountResponse = z
         wire: UsRailSchema.optional(),
         rtp: UsRailSchema.optional(),
         swift_bic_code: z.string().optional(),
-        beneficiary: z.unknown().optional(),
-        receiving_bank: z.unknown().optional(),
+        beneficiary: UsPartySchema.optional(),
+        receiving_bank: UsPartySchema.optional(),
         account_type: z.string().optional(),
       })
       .passthrough()
