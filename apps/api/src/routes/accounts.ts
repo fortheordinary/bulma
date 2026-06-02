@@ -22,6 +22,16 @@ type BlindPayRail = {
   account_number?: string
 }
 
+type BlindPayParty = {
+  name?: string | null
+  address_line_1?: string | null
+  address_line_2?: string | null
+  city?: string | null
+  state_province_region?: string | null
+  country?: string | null
+  postal_code?: string | null
+}
+
 function maskAccountNumber(n: string | undefined): string | null {
   if (!n) return null
   if (n.length <= 4) return n
@@ -34,13 +44,25 @@ const RailResponse = z.object({
   accountNumberMasked: z.string().nullable(),
 })
 
+const PartyResponse = z.object({
+  name: z.string().nullable(),
+  addressLine1: z.string().nullable(),
+  addressLine2: z.string().nullable(),
+  city: z.string().nullable(),
+  stateProvinceRegion: z.string().nullable(),
+  country: z.string().nullable(),
+  postalCode: z.string().nullable(),
+})
+
 const VirtualAccountResponse = z
   .object({
     status: z.string().nullable(),
     ach: RailResponse.nullable(),
     wire: RailResponse.nullable(),
     rtp: RailResponse.nullable(),
-    beneficiary: z.unknown().nullable(),
+    swiftBicCode: z.string().nullable(),
+    beneficiary: PartyResponse.nullable(),
+    receivingBank: PartyResponse.nullable(),
     accountType: z.string().nullable(),
   })
   .openapi("AccountVirtualResponse")
@@ -115,13 +137,27 @@ accounts.openapi(virtualRoute, async (c) => {
             accountNumberMasked: maskAccountNumber(r.account_number),
           }
         : null
+    const party = (p: BlindPayParty | undefined) =>
+      p
+        ? {
+            name: p.name ?? null,
+            addressLine1: p.address_line_1 ?? null,
+            addressLine2: p.address_line_2 ?? null,
+            city: p.city ?? null,
+            stateProvinceRegion: p.state_province_region ?? null,
+            country: p.country ?? null,
+            postalCode: p.postal_code ?? null,
+          }
+        : null
     return c.json(
       {
         status: va.kyc_status ?? va.status ?? null,
         ach: rail(va.us?.ach),
         wire: rail(va.us?.wire),
         rtp: rail(va.us?.rtp),
-        beneficiary: va.us?.beneficiary ?? null,
+        swiftBicCode: va.us?.swift_bic_code ?? null,
+        beneficiary: party(va.us?.beneficiary),
+        receivingBank: party(va.us?.receiving_bank),
         accountType: va.us?.account_type ?? null,
       },
       200,

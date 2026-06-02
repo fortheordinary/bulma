@@ -31,7 +31,6 @@ Commands:
     --no-browser      Do not auto-open the browser
     --json            Machine-readable output
   account             Show US account instructions
-    --show-full       Reveal the full account number
     --json            Machine-readable output
   balance             Show account balance in USD
     --json            Machine-readable output
@@ -95,7 +94,6 @@ async function main(argv: string[]): Promise<number> {
       })
     case "account":
       return account({
-        showFull: hasFlag(rest, "show-full"),
         json: hasFlag(rest, "json"),
       })
     case "balance":
