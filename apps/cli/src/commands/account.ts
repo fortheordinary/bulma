@@ -49,7 +49,7 @@ function printRail(label: string, rail: RailValue): void {
 
 function printParty(label: string, party: PartyValue): void {
   if (!party) return
-  const lines = [
+  const candidates = [
     party.name,
     party.addressLine1,
     party.addressLine2,
@@ -57,7 +57,11 @@ function printParty(label: string, party: PartyValue): void {
       .filter(Boolean)
       .join(", "),
     party.country,
-  ].filter((l): l is string => !!l && l.trim().length > 0)
+  ]
+  const lines: string[] = []
+  for (const c of candidates) {
+    if (c && c.trim().length > 0) lines.push(c)
+  }
   if (lines.length === 0) return
   console.log(`${label}`)
   for (const line of lines) console.log(`  ${line}`)
