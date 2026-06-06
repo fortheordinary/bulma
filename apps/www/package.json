@@ -37,6 +37,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.0.1",
     "typescript": "^5.7.2",
+    "unplugin-vue-router": "^0.19.2",
     "vite": "^6.0.7",
     "vue-tsc": "^2.2.0",
     "wrangler": "^4.95.0"
