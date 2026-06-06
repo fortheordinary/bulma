@@ -1,6 +1,6 @@
 {
   "extends": "@bulma/typescript-config/vue.json",
-  "include": ["src/**/*.ts", "src/**/*.vue", "env.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.vue", "env.d.ts", "typed-router.d.ts"],
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "baseUrl": ".",
