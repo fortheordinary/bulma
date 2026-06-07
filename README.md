@@ -64,10 +64,10 @@ Your agent can now call `bulma <command> --json`.
 
 ### Hermes
 
-Install the bulma skill ([skills live in `~/.hermes/skills/`](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills)):
+Install the bulma skill ([skills live in `~/.hermes/skills/`](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills)). A bare `hermes skills install bulma` only resolves names in the default taps and registries — bulma isn't there yet, so install it straight from this repo by path:
 
 ```sh
-hermes skills install bulma
+hermes skills install fortheordinary/bulma/apps/cli/skill
 ```
 
 Your agent can now call `bulma <command> --json`.
