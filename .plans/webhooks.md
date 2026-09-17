@@ -39,32 +39,32 @@ app.post('/webhooks/blindpay', async (c) => {
 
 ## Event handlers
 
-### `receiver.update` — status `approved`
+### `customer.update` — status `approved`
 
-Critical event. Triggers wallet + virtual account provisioning. All three BlindPay objects (receiver / wallet / virtual account) live in BlindPay; Bulma stores only the ids on `user_profile`.
+Critical event. Triggers wallet + virtual account provisioning. All three BlindPay objects (customer / wallet / virtual account) live in BlindPay; Bulma stores only the ids on `user_profile`.
 
 ```ts
-async function onReceiverApproved(event, env) {
-  const receiverId = event.data.id;
-  const userId = await getUserIdByReceiver(receiverId, event); // via clientReferenceId we set at /onboard/start
-  if (!userId) return; // foreign receiver, ignore
+async function onCustomerApproved(event, env) {
+  const customerId = event.data.id;
+  const userId = await getUserIdByCustomer(customerId, event); // via clientReferenceId we set at /onboard/start
+  if (!userId) return; // foreign customer, ignore
 
   await db.transaction(async (tx) => {
     const profile = await tx.select().from(userProfile).where(eq(userProfile.userId, userId)).get();
     const patch: Partial<UserProfile> = {
-      receiverId, onboardingState: 'approved',
+      customerId, onboardingState: 'approved',
     };
 
     if (!profile?.walletId) {
       // BlindPay's secure-method blockchain wallet. We do NOT custody — BlindPay handles signing.
-      const wallet = await blindpay.POST(`/receivers/${receiverId}/blockchain-wallets`, {
+      const wallet = await blindpay.POST(`/customers/${customerId}/blockchain-wallets`, {
         name: 'Primary', network: 'polygon',
       });
       patch.walletId = wallet.id;
     }
 
     if (!profile?.virtualAccountId && walletEligibleForUsVa(profile)) {
-      const va = await blindpay.POST(`/receivers/${receiverId}/virtual-accounts`, {
+      const va = await blindpay.POST(`/customers/${customerId}/virtual-accounts`, {
         token: 'USDC', blockchain_wallet_id: patch.walletId ?? profile.walletId,
       });
       patch.virtualAccountId = va.id;
@@ -80,7 +80,7 @@ async function onReceiverApproved(event, env) {
 
 > The exact BlindPay call shape for "create blockchain wallet" depends on whether their hosted KYC link covers the wallet step internally (in which case we just record the `bw_…` from a later event) or expects us to call `POST /blockchain-wallets`. Confirm during Phase 3 — both branches are idempotent on `user_profile.wallet_id IS NULL`.
 
-### `receiver.update` — status `rejected`
+### `customer.update` — status `rejected`
 
 Set `user_profile.onboarding_state = 'rejected'`. Persist `kyc_warnings` into `webhook_events.payload` (no dedicated column). Do not provision. CLI surfaces via `GET /onboard/status`.
 
@@ -121,4 +121,4 @@ Persist + ignore in MVP.
 ## Testing
 
 - Unit-test `verifySvix` against the example in the BlindPay docs (`msg_loFOjxBNrRLzqYUf` + `1731705121` + payload → `v1,rAvfW3dJ/X/qxhsaXPOyyCGmRKsaKWcsNccKXlIktD0=`).
-- Integration: use `wrangler dev` + `curl` to POST a forged-but-signed `receiver.update approved` payload, observe `user_profile.{receiver_id, wallet_id, virtual_account_id}` populate and `onboarding_state` flip to `ready`.
+- Integration: use `wrangler dev` + `curl` to POST a forged-but-signed `customer.update approved` payload, observe `user_profile.{customer_id, wallet_id, virtual_account_id}` populate and `onboarding_state` flip to `ready`.

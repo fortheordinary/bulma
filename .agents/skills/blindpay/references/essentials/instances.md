@@ -14,7 +14,7 @@ You **cannot** create instances through the API; you must create them through th
 
 | Feature | Development | Production |
 |---------|-------------|------------|
-| Receivers | ✅ | ✅ |
+| Customers | ✅ | ✅ |
 | Bank Accounts | ✅ | ✅ |
 | Payout Quotes | ✅ | ✅ |
 | Payouts | ✅ | ✅ |

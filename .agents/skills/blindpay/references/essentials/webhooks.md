@@ -9,8 +9,8 @@ Webhooks are a way to receive events from all BlindPay updates. For every receiv
 | Event | Description |
 |-------|-------------|
 | `bankAccount.new` | Triggered when a bank account is created |
-| `receiver.new` | Triggered when a receiver is created |
-| `receiver.update` | Triggered when a receiver is updated |
+| `customer.new` | Triggered when a receiver is created |
+| `customer.update` | Triggered when a receiver is updated |
 | `payout.new` | Triggered when a payout is started |
 | `payout.update` | Triggered when a payout receives an update |
 | `payout.complete` | Triggered when a payout is completed, failed, or refunded |

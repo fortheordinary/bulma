@@ -24,7 +24,7 @@ export type VirtualAccountRef = z.infer<typeof VirtualAccountRefSchema>
 
 /**
  * Pick an existing BlindPay-managed wallet to reuse, or null to signal "create
- * a new one". Reusing keeps a duplicate `receiver.update approved` event (after
+ * a new one". Reusing keeps a duplicate `customer.update approved` event (after
  * local state was lost) from provisioning a second wallet.
  */
 export function pickManagedWallet(
@@ -34,9 +34,9 @@ export function pickManagedWallet(
 }
 
 /**
- * Every receiver gets a US virtual account: BlindPay always issues it in the US
- * (jpmorgan) regardless of the receiver's own country (BR, AR, US, …). So the
- * VA step is always attempted — the receiver's country is irrelevant, and
+ * Every customer gets a US virtual account: BlindPay always issues it in the US
+ * (jpmorgan) regardless of the customer's own country (BR, AR, US, …). So the
+ * VA step is always attempted — the customer's country is irrelevant, and
  * BlindPay is the final arbiter. The `country` arg is kept for call-site
  * compatibility but no longer gates eligibility.
  */
@@ -76,7 +76,7 @@ export function pickVirtualAccountPlan(
   return { kind: "create", bridgeId: bridge?.id ?? null }
 }
 
-export type ReceiverSnapshot = {
+export type CustomerSnapshot = {
   id: string
   email?: string
   kyc_status?: "verifying" | "approved" | "rejected"
@@ -84,25 +84,25 @@ export type ReceiverSnapshot = {
 }
 
 /**
- * Resolve a BlindPay receiver to a local user. Prefers a receiver_id match
+ * Resolve a BlindPay customer to a local user. Prefers a customer_id match
  * (the strongest binding) and falls through to email lookup only when no
- * profile is yet bound to the receiver. If the receiver is already bound to
+ * profile is yet bound to the customer. If the customer is already bound to
  * a different user, the email fallback is refused so a colliding email can't
- * silently re-assign another user's receiver.
+ * silently re-assign another user's customer.
  */
-export async function findUserIdForReceiver(
+export async function findUserIdForCustomer(
   data: {
     id: string
     email?: string
   },
   db: DrizzleD1Database,
 ): Promise<string | null> {
-  const byReceiver = await db
+  const byCustomer = await db
     .select({ userId: userProfile.userId })
     .from(userProfile)
-    .where(eq(userProfile.receiverId, data.id))
+    .where(eq(userProfile.customerId, data.id))
     .get()
-  if (byReceiver) return byReceiver.userId
+  if (byCustomer) return byCustomer.userId
 
   if (data.email) {
     const byEmail = await db
@@ -112,21 +112,21 @@ export async function findUserIdForReceiver(
       .get()
     if (!byEmail) return null
     const candidateProfile = await db
-      .select({ receiverId: userProfile.receiverId })
+      .select({ customerId: userProfile.customerId })
       .from(userProfile)
       .where(eq(userProfile.userId, byEmail.id))
       .get()
-    // Refuse to migrate a user from one receiver to another via email match.
+    // Refuse to migrate a user from one customer to another via email match.
     if (
-      candidateProfile?.receiverId &&
-      candidateProfile.receiverId !== data.id
+      candidateProfile?.customerId &&
+      candidateProfile.customerId !== data.id
     ) {
       console.warn(
-        "findUserIdForReceiver: refusing email-match cross-binding",
+        "findUserIdForCustomer: refusing email-match cross-binding",
         {
           userId: byEmail.id,
-          existingReceiverId: candidateProfile.receiverId,
-          incomingReceiverId: data.id,
+          existingCustomerId: candidateProfile.customerId,
+          incomingCustomerId: data.id,
         },
       )
       return null
@@ -137,13 +137,13 @@ export async function findUserIdForReceiver(
 }
 
 /**
- * Apply a BlindPay receiver snapshot to a known local user. Sets onboarding
+ * Apply a BlindPay customer snapshot to a known local user. Sets onboarding
  * state from kyc_status, and provisions wallet + virtual account on approval.
  * Idempotent: safe to call from webhook delivery and from on-demand polling.
  */
-export async function applyReceiverStateForUser(
+export async function applyCustomerStateForUser(
   userId: string,
-  snapshot: ReceiverSnapshot,
+  snapshot: CustomerSnapshot,
   env: Bindings,
   db: DrizzleD1Database,
 ): Promise<void> {
@@ -154,17 +154,17 @@ export async function applyReceiverStateForUser(
     .get()
   if (!profile) return
 
-  // Never overwrite a different receiver already bound to this profile; never
-  // adopt a receiver that another user already owns. Both are cross-tenant
-  // hazards (the second can't happen via the receiver-first lookup above, but
-  // applyReceiverStateForUser is also called directly from the webhook path).
-  if (profile.receiverId && profile.receiverId !== snapshot.id) {
+  // Never overwrite a different customer already bound to this profile; never
+  // adopt a customer that another user already owns. Both are cross-tenant
+  // hazards (the second can't happen via the customer-first lookup above, but
+  // applyCustomerStateForUser is also called directly from the webhook path).
+  if (profile.customerId && profile.customerId !== snapshot.id) {
     console.warn(
-      "applyReceiverStateForUser: profile already bound to different receiver",
+      "applyCustomerStateForUser: profile already bound to different customer",
       {
         userId,
-        existingReceiverId: profile.receiverId,
-        incomingReceiverId: snapshot.id,
+        existingCustomerId: profile.customerId,
+        incomingCustomerId: snapshot.id,
       },
     )
     return
@@ -174,25 +174,25 @@ export async function applyReceiverStateForUser(
     .from(userProfile)
     .where(
       and(
-        eq(userProfile.receiverId, snapshot.id),
+        eq(userProfile.customerId, snapshot.id),
         ne(userProfile.userId, userId),
       ),
     )
     .get()
   if (otherOwner) {
     console.warn(
-      "applyReceiverStateForUser: receiver already owned by another user",
+      "applyCustomerStateForUser: customer already owned by another user",
       {
         userId,
         otherUserId: otherOwner.userId,
-        receiverId: snapshot.id,
+        customerId: snapshot.id,
       },
     )
     return
   }
 
   const updates: Partial<typeof userProfile.$inferInsert> = {
-    receiverId: snapshot.id,
+    customerId: snapshot.id,
   }
 
   if (snapshot.kyc_status === "rejected") {
@@ -231,7 +231,7 @@ export async function applyReceiverStateForUser(
 
 async function provisionWalletAndVirtualAccount(
   userId: string,
-  receiverId: string,
+  customerId: string,
   vaEligible: boolean,
   env: Bindings,
   db: DrizzleD1Database,
@@ -247,20 +247,20 @@ async function provisionWalletAndVirtualAccount(
 
   // 1. BlindPay-managed wallet — BlindPay generates + controls the key (no
   //    custody). Reuse the local id, else an existing BlindPay wallet, else
-  //    create one. Reuse keeps duplicate `receiver.update approved` events
+  //    create one. Reuse keeps duplicate `customer.update approved` events
   //    from provisioning a second wallet.
   let walletId = profile.walletId ?? null
   let walletAddress = profile.walletAddress ?? null
   if (!walletId) {
     const reused = pickManagedWallet(
-      await blindpay.listManagedWallets(receiverId),
+      await blindpay.listManagedWallets(customerId),
     )
     if (reused) {
       walletId = reused.id
       walletAddress = reused.address
     } else {
       const wallet = await blindpay.createManagedWallet({
-        receiverId,
+        customerId,
         name: "Primary",
         network: env.BLINDPAY_NETWORK,
       })
@@ -282,8 +282,8 @@ async function provisionWalletAndVirtualAccount(
       const plan = pickVirtualAccountPlan(
         vaEligible,
         walletAddress,
-        await blindpay.listVirtualAccounts(receiverId),
-        await blindpay.listBlockchainWallets(receiverId),
+        await blindpay.listVirtualAccounts(customerId),
+        await blindpay.listBlockchainWallets(customerId),
       )
       if (plan.kind === "reuse") {
         virtualAccountId = plan.virtualAccountId
@@ -292,7 +292,7 @@ async function provisionWalletAndVirtualAccount(
           plan.bridgeId ??
           (
             await blindpay.createBlockchainWallet({
-              receiverId,
+              customerId,
               name: "Primary",
               network: env.BLINDPAY_NETWORK,
               is_account_abstraction: true,
@@ -302,7 +302,7 @@ async function provisionWalletAndVirtualAccount(
         // JP Morgan is the only supported issuer. Issuance has a ~24h SLA;
         // surfaced by `GET /accounts/virtual` via the VA's `status` field.
         const va = await blindpay.createVirtualAccount({
-          receiverId,
+          customerId,
           token: env.BLINDPAY_TOKEN,
           blockchain_wallet_id: bridgeId,
           banking_partner: "jpmorgan",
@@ -317,7 +317,7 @@ async function provisionWalletAndVirtualAccount(
       }
     } catch (err) {
       console.warn(
-        "virtual account creation skipped/failed (non-US receiver?)",
+        "virtual account creation skipped/failed (non-US customer?)",
         err,
       )
     }
@@ -333,16 +333,16 @@ async function provisionWalletAndVirtualAccount(
 }
 
 /**
- * On-demand poll: if local onboarding is still `pending`, fetch the receiver
+ * On-demand poll: if local onboarding is still `pending`, fetch the customer
  * from BlindPay and apply any state change (approved/rejected). No-op for
  * users in any other state — terminal states are trusted, and we don't want
  * to spam BlindPay on every authed request.
  *
- * Falls back to `listReceivers` + email match when the local profile has no
- * receiverId (the `receiver.new` webhook was dropped between hosted-KYC
+ * Falls back to `listCustomers` + email match when the local profile has no
+ * customerId (the `customer.new` webhook was dropped between hosted-KYC
  * completion and our handler).
  */
-export async function reconcileReceiverForUser(
+export async function reconcileCustomerForUser(
   userId: string,
   env: Bindings,
   db: DrizzleD1Database,
@@ -357,8 +357,8 @@ export async function reconcileReceiverForUser(
 
   const blindpay = createBlindPay(env)
 
-  let receiverId = profile.receiverId
-  if (!receiverId) {
+  let customerId = profile.customerId
+  if (!customerId) {
     const u = await db
       .select({ email: userTable.email })
       .from(userTable)
@@ -366,16 +366,16 @@ export async function reconcileReceiverForUser(
       .get()
     if (!u?.email) return
     try {
-      const list = await blindpay.listReceivers()
+      const list = await blindpay.listCustomers()
       const arr = Array.isArray(list) ? list : list.data
       const match = arr.find(
         (r) => r.email?.toLowerCase() === u.email.toLowerCase(),
       )
       if (!match) return
-      receiverId = match.id
+      customerId = match.id
     } catch (err) {
       const status = err instanceof BlindPayError ? err.status : 0
-      console.warn("reconcileReceiverForUser: listReceivers failed", {
+      console.warn("reconcileCustomerForUser: listCustomers failed", {
         userId,
         status,
       })
@@ -384,23 +384,23 @@ export async function reconcileReceiverForUser(
   }
 
   try {
-    const receiver = await blindpay.getReceiver(receiverId)
-    await applyReceiverStateForUser(
+    const customer = await blindpay.getCustomer(customerId)
+    await applyCustomerStateForUser(
       userId,
       {
-        id: receiver.id,
-        email: receiver.email,
-        kyc_status: receiver.kyc_status,
-        country: receiver.country ?? undefined,
+        id: customer.id,
+        email: customer.email,
+        kyc_status: customer.kyc_status,
+        country: customer.country ?? undefined,
       },
       env,
       db,
     )
   } catch (err) {
     const status = err instanceof BlindPayError ? err.status : 0
-    console.warn("reconcileReceiverForUser: getReceiver failed", {
+    console.warn("reconcileCustomerForUser: getCustomer failed", {
       userId,
-      receiverId,
+      customerId,
       status,
     })
   }

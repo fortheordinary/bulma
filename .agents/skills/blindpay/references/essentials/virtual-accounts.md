@@ -14,7 +14,7 @@ Virtual account creation is currently **only available for**:
 
 - **US citizens** with Social Security Number (SSN)
 - **US companies** with Employer Identification Number (EIN)
-- Receivers with Enhanced KYC
+- Customers with Enhanced KYC
 
 > We are working to expand virtual account availability to additional countries in the future.
 
@@ -43,7 +43,7 @@ Before generating a virtual account, you need to:
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/virtual-accounts \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/virtual-accounts \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{

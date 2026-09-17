@@ -34,7 +34,7 @@ All receivers on `development` instances will be automatically approved by our K
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -72,7 +72,7 @@ Add an external blockchain wallet where you want to receive stablecoins.
 First, get the message to sign:
 
 ```bash
-curl https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/blockchain-wallets/sign-message \
+curl https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/blockchain-wallets/sign-message \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN'
 ```
 
@@ -89,7 +89,7 @@ Then add the wallet with the signature:
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/blockchain-wallets \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/blockchain-wallets \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -106,7 +106,7 @@ For AA wallets, you can add the address directly:
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/blockchain-wallets \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/blockchain-wallets \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{

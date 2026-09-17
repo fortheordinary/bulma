@@ -31,7 +31,7 @@ With this method, you can attach a blockchain wallet without asking for the wall
 ### Step 1: Get the Message to Sign
 
 ```bash
-curl https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/blockchain-wallets/sign-message \
+curl https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/blockchain-wallets/sign-message \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN'
 ```
 
@@ -53,7 +53,7 @@ const signature_tx_hash = await signMessage(wagmiConfig, {
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/blockchain-wallets \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/blockchain-wallets \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -72,7 +72,7 @@ On this method you can set the `is_account_abstraction` field to `true` and fill
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/blockchain-wallets \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/blockchain-wallets \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{

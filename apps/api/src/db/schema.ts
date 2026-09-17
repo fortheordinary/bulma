@@ -12,7 +12,10 @@ export const userProfile = sqliteTable("user_profile", {
   })
     .notNull()
     .default("none"),
-  receiverId: text("receiver_id").unique(),
+  // BlindPay customer id (`re_…`). The D1 column keeps its original
+  // `receiver_id` name from before BlindPay's receivers→customers rename so no
+  // migration is required; only the TS accessor is renamed.
+  customerId: text("receiver_id").unique(),
   walletId: text("wallet_id"),
   walletAddress: text("wallet_address"),
   virtualAccountId: text("virtual_account_id"),

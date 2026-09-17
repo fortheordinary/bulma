@@ -92,7 +92,7 @@ Prefix table:
 Rules:
 
 - **better-auth tables** (`user`, `session`, `account`, `verification`): configure better-auth's `advanced.database.generateId` to return the right prefix per table.
-- **BlindPay-owned ids** keep BlindPay's exact format: `re_…` (receiver), `ba_…` (bank account), `bw_…` (wallet), `va_…` (virtual account), `po_…` (payout). Do **not** re-prefix or rewrap.
+- **BlindPay-owned ids** keep BlindPay's exact format: `re_…` (customer), `ba_…` (bank account), `bw_…` (wallet), `va_…` (virtual account), `po_…` (payout). Do **not** re-prefix or rewrap.
 - **`device_codes`**: `device_code` is 32-byte hex, `user_code` is 8-char alphanumeric — these are RFC 8628 device-flow protocol values, not row ids, and bypass this rule.
 - **Referral `code` column** (`referral_codes.code`) is the human-facing share code (6-char alphanumeric, excluding ambiguous I/O/0/1), not a row id, and also bypasses this rule.
 
@@ -105,7 +105,7 @@ Follow this loop exactly. Do not skip steps.
    - If schema changed: `bun run --filter=api db:generate`
    - Apply: `bun run --filter=api db:migrate:local`
 3. **Run the API**: `bun run --filter=api dev` (wrangler dev on `:8787`)
-4. **Start the Cloudflare tunnel** — required to capture BlindPay webhooks against the local API (`local.bul.ma` → `:8787`). Without it, `receiver.*`, `payout.*`, etc. never reach the local dispatch path and onboarding stays stuck in `pending`.
+4. **Start the Cloudflare tunnel** — required to capture BlindPay webhooks against the local API (`local.bul.ma` → `:8787`). Without it, `customer.*`, `payout.*`, etc. never reach the local dispatch path and onboarding stays stuck in `pending`.
 5. **Test locally** — exercise the change with `curl` (API) or `bun run apps/cli/src/index.ts <cmd>` (CLI). Verify state by querying D1 directly: `bunx wrangler d1 execute bulma --local --command='…'`
 6. **Check the result** — compare actual response and DB rows against expected behavior.
 7. **Branch on outcome**

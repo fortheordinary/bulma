@@ -3,8 +3,8 @@ import { and, eq, isNull, lt, sql } from "drizzle-orm"
 import { drizzle, type DrizzleD1Database } from "drizzle-orm/d1"
 import { payouts as payoutsTable, webhookEvents } from "../db/schema"
 import {
-  applyReceiverStateForUser,
-  findUserIdForReceiver,
+  applyCustomerStateForUser,
+  findUserIdForCustomer,
   isVirtualAccountEligible,
   pickManagedWallet,
   pickVirtualAccountPlan,
@@ -98,7 +98,7 @@ webhooks.openapi(route, async (c) => {
   }
 
   // BlindPay sends a flat payload with the event type in `webhook_event`
-  // (e.g. "receiver.update"). Accept `event_type` too for forward-compat.
+  // (e.g. "customer.update"). Accept `event_type` too for forward-compat.
   const eventRecord =
     typeof event === "object" && event !== null
       ? event as Record<string, unknown>
@@ -137,9 +137,14 @@ async function dispatch(
     .where(eq(webhookEvents.id, svixId))
   try {
     switch (eventType) {
+      case "customer.new":
+      case "customer.update":
+      // Legacy names from before BlindPay's receivers→customers rename (Jul 2026).
+      // BlindPay no longer emits them, but unprocessed rows persisted before the
+      // rename can still be re-dispatched by the nightly cron.
       case "receiver.new":
       case "receiver.update":
-        await onReceiverEvent(event, env, db)
+        await onCustomerEvent(event, env, db)
         break
       case "tos.accept":
         await onTosAccept(event, db)
@@ -170,10 +175,10 @@ async function dispatch(
   }
 }
 
-// BlindPay receiver payloads are flat: the receiver object's fields sit at the
+// BlindPay customer payloads are flat: the customer object's fields sit at the
 // top level of the webhook body (no `data` envelope). kyc_status is read as a
 // free string and narrowed below so an unmodeled status can't fail the parse.
-const ReceiverEventSchema = z
+const CustomerEventSchema = z
   .object({
     id: z.string(),
     email: z.string().email().optional(),
@@ -184,19 +189,19 @@ const ReceiverEventSchema = z
 
 const KYC_STATES = ["verifying", "approved", "rejected"] as const
 
-async function onReceiverEvent(
+async function onCustomerEvent(
   event: unknown,
   env: Bindings,
   db: DrizzleD1Database,
 ): Promise<void> {
-  const parsed = ReceiverEventSchema.safeParse(event)
+  const parsed = CustomerEventSchema.safeParse(event)
   if (!parsed.success) return
 
   const data = parsed.data
-  const userId = await findUserIdForReceiver(data, db)
+  const userId = await findUserIdForCustomer(data, db)
   if (!userId) {
-    console.warn("webhook: no matching user for receiver", {
-      receiverId: data.id,
+    console.warn("webhook: no matching user for customer", {
+      customerId: data.id,
     })
     return
   }
@@ -207,7 +212,7 @@ async function onReceiverEvent(
     ? data.kyc_status as typeof KYC_STATES[number]
     : undefined
 
-  await applyReceiverStateForUser(
+  await applyCustomerStateForUser(
     userId,
     {
       id: data.id,
@@ -220,7 +225,7 @@ async function onReceiverEvent(
   )
 }
 
-// Flat payload (see ReceiverEventSchema): payout fields at the top level.
+// Flat payload (see CustomerEventSchema): payout fields at the top level.
 const PayoutEventSchema = z
   .object({
     id: z.string(),
@@ -262,9 +267,13 @@ async function onPayoutEvent(
   }
 }
 
-// Flat payload (see ReceiverEventSchema): receiver_id at the top level.
+// Flat payload (see CustomerEventSchema): customer_id at the top level.
+// `receiver_id` is the pre-rename spelling, still present on stored legacy rows.
 const TosEventSchema = z
-  .object({ receiver_id: z.string().optional() })
+  .object({
+    customer_id: z.string().optional(),
+    receiver_id: z.string().optional(),
+  })
   .passthrough()
 
 async function onTosAccept(
@@ -273,7 +282,7 @@ async function onTosAccept(
 ): Promise<void> {
   const parsed = TosEventSchema.safeParse(event)
   if (!parsed.success) return
-  // TOS acceptance tracked via receiver lookup later; no schema column for tos_id yet.
+  // TOS acceptance tracked via customer lookup later; no schema column for tos_id yet.
 }
 
 /** Nightly cron pass: re-dispatch webhook events that never finished

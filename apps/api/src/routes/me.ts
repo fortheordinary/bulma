@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { userProfile } from "../db/schema"
 import { requireUser, type AuthContext } from "../middleware/require-user"
-import { reconcileReceiverForUser } from "../lib/onboard"
+import { reconcileCustomerForUser } from "../lib/onboard"
 import type { Bindings } from "../lib/env"
 
 const MeResponse = z.object({
@@ -41,7 +41,7 @@ me.openapi(route, async (c) => {
   // If the user is mid-onboarding, the BlindPay webhook may be late or lost.
   // Poll BlindPay once per call so `whoami` reflects the current KYC status
   // (no-op unless onboardingState === "pending").
-  await reconcileReceiverForUser(user.id, c.env, db)
+  await reconcileCustomerForUser(user.id, c.env, db)
 
   const profile = await db
     .select()

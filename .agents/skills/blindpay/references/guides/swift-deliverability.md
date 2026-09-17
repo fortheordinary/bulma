@@ -24,7 +24,7 @@ For every B2B payment sent through SWIFT, it's mandatory to provide a transactio
 
 ## How to Add a SWIFT Account
 
-1. Access your instance → open **Receivers** from the sidebar menu → open the customer profile
+1. Access your instance → open **Customers** from the sidebar menu → open the customer profile
 2. Open **Bank Accounts** → select **International Swift**
 3. Fill in the SWIFT account details:
    - Use **CAPSLOCK only**

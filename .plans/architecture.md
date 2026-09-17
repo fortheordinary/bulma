@@ -35,13 +35,13 @@
 
 ### Onboarding
 
-BlindPay is the source of truth for receiver / wallet / virtual account. Bulma stores only the BlindPay ids on `user_profile`.
+BlindPay is the source of truth for customer / wallet / virtual account. Bulma stores only the BlindPay ids on `user_profile`.
 
 1. `bulma onboard` → `POST /onboard/start` → API calls BlindPay to mint a hosted KYC link, stores nothing yet, returns the URL to CLI.
 2. CLI opens URL in browser; user completes KYC.
-3. BlindPay → `POST /webhooks/blindpay` (event `receiver.update`, status `approved`).
+3. BlindPay → `POST /webhooks/blindpay` (event `customer.update`, status `approved`).
 4. Webhook handler:
-   - Maps payload's `receiver_id` to a Bulma user (via the `clientReferenceId` / email we passed at `/onboard/start`); writes `user_profile.receiver_id`, flips `onboarding_state = 'approved'`.
+   - Maps payload's `customer_id` to a Bulma user (via the `clientReferenceId` / email we passed at `/onboard/start`); writes `user_profile.customer_id`, flips `onboarding_state = 'approved'`.
    - Calls BlindPay `POST /blockchain-wallets` (Polygon) and stores returned `bw_…` in `user_profile.wallet_id`.
    - Calls BlindPay `POST /virtual-accounts` (`token: USDC`, `blockchain_wallet_id: bw_…`) and stores `va_…` in `user_profile.virtual_account_id`.
    - Flips `onboarding_state = 'ready'`.
