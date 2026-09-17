@@ -72,7 +72,7 @@ Two viable implementations (decision in [open-questions.md](open-questions.md)):
 
 | Option                                            | Description                                                                                                                          |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **A. Bulma swallows the fee**                     | Quote with `cover_fees: true` so receiver gets the full amount; the extra USDC needed is funded from a Bulma treasury wallet.        |
+| **A. Bulma swallows the fee**                     | Quote with `cover_fees: true` so customer gets the full amount; the extra USDC needed is funded from a Bulma treasury wallet.        |
 | **B. BlindPay partner-fee waiver / promotion**    | If BlindPay supports a per-call partner-fee override (TBD with their team), set the override at quote time.                          |
 
 A is independent of BlindPay; ship first.

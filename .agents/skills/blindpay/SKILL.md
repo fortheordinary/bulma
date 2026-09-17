@@ -37,14 +37,14 @@ All API calls require:
 
 ```bash
 curl --request GET \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers \
   --header 'Authorization: Bearer YOUR_API_KEY'
 ```
 
 ### Payout Flow (Stablecoin → Fiat)
 
 1. **Accept Terms of Service** → Get `tos_id`
-2. **Create Receiver** → KYC verification, get `receiver_id`
+2. **Create Receiver** → KYC verification, get `customer_id`
 3. **Add Bank Account** → Get `bank_account_id`
 4. **Create Payout Quote** → Get `quote_id` (valid for 5 minutes)
 5. **Approve Tokens** → ERC20 approval for BlindPay contract
@@ -55,7 +55,7 @@ See [references/getting-started/stable-to-fiat.md](references/getting-started/st
 ### Payin Flow (Fiat → Stablecoin)
 
 1. **Accept Terms of Service** → Get `tos_id`
-2. **Create Receiver** → KYC verification, get `receiver_id`
+2. **Create Receiver** → KYC verification, get `customer_id`
 3. **Add Blockchain Wallet** → Get `blockchain_wallet_id`
 4. **Create Payin Quote** → Get `payin_quote_id` (valid for 5 minutes)
 5. **Execute Payin** → Get payment instructions (PIX code, CLABE, etc.)
@@ -137,7 +137,7 @@ Common errors:
 ### Essentials
 - [Instances](references/essentials/instances.md) - Dev vs production environments
 - [Terms of Service](references/essentials/terms-of-service.md) - TOS acceptance flow
-- [Receivers](references/essentials/receivers.md) - KYC/KYB for individuals and businesses
+- [Customers](references/essentials/customers.md) - KYC/KYB for individuals and businesses
 - [Bank Accounts](references/essentials/bank-accounts.md) - ACH, Wire, PIX, SPEI, SWIFT
 - [Virtual Accounts](references/essentials/virtual-accounts.md) - US bank account generation
 - [Blockchain Wallets](references/essentials/blockchain-wallets.md) - External wallet management

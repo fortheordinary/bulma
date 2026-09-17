@@ -35,7 +35,7 @@ Run the code below to create a new receiver. All receivers on `development` inst
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -72,7 +72,7 @@ In this example we're adding an existing ACH bank account from the US. Replace `
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/bank-accounts \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/bank-accounts \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{

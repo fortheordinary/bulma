@@ -1,4 +1,4 @@
-# Receivers
+# Customers
 
 ## What is a Receiver?
 
@@ -99,7 +99,7 @@ Before creating a receiver, you need to:
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -132,7 +132,7 @@ curl --request POST \
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
@@ -169,7 +169,7 @@ curl --request POST \
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{

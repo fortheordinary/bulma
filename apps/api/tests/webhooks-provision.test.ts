@@ -35,7 +35,7 @@ describe('isVirtualAccountEligible', () => {
 });
 
 describe('pickVirtualAccountPlan', () => {
-  it('non-US receiver skips VA creation', () => {
+  it('non-US customer skips VA creation', () => {
     expect(pickVirtualAccountPlan(false, ADDR, [], [])).toEqual({ kind: 'skip' });
   });
 

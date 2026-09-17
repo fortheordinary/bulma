@@ -15,13 +15,13 @@ Owned by [better-auth's Drizzle adapter](https://www.better-auth.com/docs/adapte
 
 ### `user_profile` (Bulma-owned, 1:1 with `user`)
 
-App-specific columns kept separate so we never edit better-auth's `user` table. BlindPay-owned objects (receiver, wallet, virtual account, bank accounts) are not mirrored locally — we store only the BlindPay ids and fetch fresh state from the BlindPay API on demand.
+App-specific columns kept separate so we never edit better-auth's `user` table. BlindPay-owned objects (customer, wallet, virtual account, bank accounts) are not mirrored locally — we store only the BlindPay ids and fetch fresh state from the BlindPay API on demand.
 
 | Column               | Type    | Notes                                                                   |
 | -------------------- | ------- | ----------------------------------------------------------------------- |
 | `user_id`            | text PK | → user.id (cascade delete)                                              |
 | `onboarding_state`   | text    | enum: `none` / `pending` / `approved` / `rejected` / `ready`            |
-| `receiver_id`        | text    | BlindPay `re_…`, nullable until onboarding creates it                    |
+| `customer_id`        | text    | BlindPay `re_…`, nullable until onboarding creates it                    |
 | `wallet_id`          | text    | BlindPay `bw_…`, nullable                                                |
 | `virtual_account_id` | text    | BlindPay `va_…`, nullable                                                |
 | `created_at`         | integer |                                                                          |

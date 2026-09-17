@@ -128,17 +128,17 @@ payouts.openapi(quoteRoute, async (c) => {
     .from(userProfile)
     .where(eq(userProfile.userId, user.id))
     .get()
-  if (!profile?.receiverId || !profile.walletId) {
+  if (!profile?.customerId || !profile.walletId) {
     return c.json({ error: "no_account" }, 404)
   }
 
   const blindpay = createBlindPay(c.env)
 
-  // Ownership check: the bank account must belong to this user's receiver,
+  // Ownership check: the bank account must belong to this user's customer,
   // otherwise an attacker who guessed/learned another user's `ba_…` id could
   // settle a payout into someone else's account from their own balance.
   try {
-    const owned = await blindpay.listBankAccounts(profile.receiverId)
+    const owned = await blindpay.listBankAccounts(profile.customerId)
     if (!owned.some((a) => a.id === recipientId)) {
       return c.json({ error: "recipient_not_found" }, 404)
     }

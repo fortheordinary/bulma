@@ -80,7 +80,7 @@ async function seedProfile(walletAddress: string | null = "0xWALLET") {
   await db.insert(userProfile).values({
     userId: USER_ID,
     onboardingState: "ready",
-    receiverId: "re_test",
+    customerId: "re_test",
     walletId: "bl_test",
     walletAddress,
     createdAt: nowSec(),

@@ -52,7 +52,7 @@ better-auth's Drizzle adapter generates these tables (we let it own them; do not
 - `account` (id, accountId, providerId, userId, accessToken, refreshToken, idToken, …) — Google OAuth records.
 - `verification` (id, identifier, value, expiresAt) — OTP / device codes (we co-opt this for device flow, see below).
 
-Domain tables (`receivers`, `wallets`, …) reference `user.id`. We add a 1:1 child table `user_profile` for our app-specific columns (`onboarding_state`, etc.) so we never modify better-auth's `user` table.
+Domain tables (`customers`, `wallets`, …) reference `user.id`. We add a 1:1 child table `user_profile` for our app-specific columns (`onboarding_state`, etc.) so we never modify better-auth's `user` table.
 
 ### Server config
 

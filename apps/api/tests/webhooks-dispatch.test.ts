@@ -14,7 +14,7 @@ import { freshDb } from "./helpers/d1"
 
 const SECRET = "whsec_plJ3nmyCDGBKInavdOK15jsl"
 const USER_ID = "us_gui00000001"
-const RECEIVER_ID = "re_2DWix15QAqCq"
+const CUSTOMER_ID = "re_2DWix15QAqCq"
 
 let db: ReturnType<typeof drizzle>
 let env: Record<string, unknown>
@@ -35,7 +35,7 @@ beforeEach(async () => {
   await db.insert(userProfile).values({
     userId: USER_ID,
     onboardingState: "pending",
-    receiverId: RECEIVER_ID,
+    customerId: CUSTOMER_ID,
     createdAt: nowSec(),
   })
 })
@@ -74,8 +74,8 @@ async function postWebhook(payloadObj: unknown) {
 describe("POST /webhooks/blindpay — flat BlindPay payload", () => {
   it("reads the event type from `webhook_event` (not `event_type`)", async () => {
     const res = await postWebhook({
-      webhook_event: "receiver.update",
-      id: RECEIVER_ID,
+      webhook_event: "customer.update",
+      id: CUSTOMER_ID,
       email: "gui.rodz.dev@gmail.com",
       kyc_status: "verifying",
       country: "BR",
@@ -87,13 +87,13 @@ describe("POST /webhooks/blindpay — flat BlindPay payload", () => {
       .where(eq(webhookEvents.id, "msg_test00000001"))
       .get()
     // The bug stored "unknown" here for every event.
-    expect(row?.eventType).toBe("receiver.update")
+    expect(row?.eventType).toBe("customer.update")
   })
 
-  it("routes a flat receiver.update to the state machine (verifying -> pending stays pending)", async () => {
+  it("routes a flat customer.update to the state machine (verifying -> pending stays pending)", async () => {
     const res = await postWebhook({
-      webhook_event: "receiver.update",
-      id: RECEIVER_ID,
+      webhook_event: "customer.update",
+      id: CUSTOMER_ID,
       email: "gui.rodz.dev@gmail.com",
       kyc_status: "verifying",
       country: "BR",

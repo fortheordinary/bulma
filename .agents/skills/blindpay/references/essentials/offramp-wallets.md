@@ -44,7 +44,7 @@ Before creating an offramp wallet, you need to:
 
 ```bash
 curl --request POST \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers/re_000000000000/bank-accounts/ba_000000000000/offramp-wallets \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers/re_000000000000/bank-accounts/ba_000000000000/offramp-wallets \
   --header 'Authorization: Bearer YOUR_SECRET_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{

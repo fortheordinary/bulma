@@ -28,7 +28,7 @@ Pass the API key in the `Authorization` header:
 
 ```bash
 curl --request GET \
-  --url https://api.blindpay.com/v1/instances/in_000000000000/receivers \
+  --url https://api.blindpay.com/v1/instances/in_000000000000/customers \
   --header 'Authorization: Bearer YOUR_API_KEY'
 ```
 

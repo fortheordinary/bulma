@@ -39,7 +39,7 @@ https://app.blindpay.com/e/terms-of-service?session_token=eyJ0eXAi...&idempotenc
 | session_token | yes | eyJ0eXAi... (JWT) |
 | idempotency_key | yes | 5d8b149e-a55d-4b5b-a8f8-7c4fa315f854 (UUID) |
 | redirect_url | no | https://yourapp.com/ |
-| receiver_id | no | re_000000000000 (mandatory for accepting a new TOS version) |
+| customer_id | no | re_000000000000 (mandatory for accepting a new TOS version) |
 
 > We strongly recommend adding a `redirect_url` parameter. When users accept the terms of service, they will be automatically redirected back to your application.
 
@@ -55,6 +55,6 @@ You'll also receive a webhook event `tos.accept` when the terms of service is ac
 
 If BlindPay updates the terms of service, all requests to payout quote and payin quote endpoints will return an error with message `please_accept_terms_of_service`.
 
-If you receive this, generate a new terms of service URL and make sure to set the `receiver_id` parameter on the URL returned.
+If you receive this, generate a new terms of service URL and make sure to set the `customer_id` parameter on the URL returned.
 
 After the customer accepts the new version, all quotes endpoints won't return the error anymore.

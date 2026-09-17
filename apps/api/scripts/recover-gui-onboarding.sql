@@ -1,5 +1,5 @@
 -- One-off recovery: the first user (gui.rodz.dev) was approved by BlindPay, but
--- the receiver.update webhook predated the webhook-parsing fix and was dropped
+-- the customer.update webhook predated the webhook-parsing fix and was dropped
 -- as "unknown". Svix replays reuse the same svix-id, so the stale event can't be
 -- reprocessed through the dedup guard. Reconstruct the ready state directly from
 -- the verified webhook payloads (managed wallet bl_, AA bridge bw_, VA va_), then

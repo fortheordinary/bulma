@@ -29,7 +29,7 @@ const StartResponse = z
 const StatusResponse = z
   .object({
     state: OnboardingState,
-    receiverId: z.string().nullable(),
+    customerId: z.string().nullable(),
     walletId: z.string().nullable(),
     virtualAccountId: z.string().nullable(),
   })
@@ -137,7 +137,7 @@ onboard.openapi(startRoute, async (c) => {
   const blindpay = createBlindPay(c.env)
   let token: string
   try {
-    const minted = await blindpay.createExternalReceiverToken({
+    const minted = await blindpay.createExternalCustomerToken({
       type: "business",
       kyc_type: "standard",
     })
@@ -145,7 +145,7 @@ onboard.openapi(startRoute, async (c) => {
   } catch (err) {
     const status = err instanceof BlindPayError ? err.status : 0
     const body = err instanceof BlindPayError ? err.body : null
-    console.error("blindpay external-receiver-token failed", { status, body })
+    console.error("blindpay external-customer-token failed", { status, body })
     return c.json({ error: "blindpay_unavailable" }, 502)
   }
 
@@ -199,7 +199,7 @@ onboard.openapi(statusRoute, async (c) => {
   return c.json(
     {
       state: profile.onboardingState,
-      receiverId: profile.receiverId ?? null,
+      customerId: profile.customerId ?? null,
       walletId: profile.walletId ?? null,
       virtualAccountId: profile.virtualAccountId ?? null,
     },

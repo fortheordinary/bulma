@@ -29,7 +29,7 @@ export const recipients = new OpenAPIHono<{
 
 recipients.use("*", requireUser)
 
-async function receiverIdFor(c: {
+async function customerIdFor(c: {
   env: Bindings
   get: (k: "user") => { id: string }
 }): Promise<string | null> {
@@ -39,7 +39,7 @@ async function receiverIdFor(c: {
     .from(userProfile)
     .where(eq(userProfile.userId, c.get("user").id))
     .get()
-  return profile?.receiverId ?? null
+  return profile?.customerId ?? null
 }
 
 // Surface BlindPay's own validation message (e.g. invalid IBAN / PIX key) to the
@@ -107,11 +107,11 @@ const listRoute = createRoute({
 })
 
 recipients.openapi(listRoute, async (c) => {
-  const receiverId = await receiverIdFor(c)
-  if (!receiverId) return c.json({ error: "no_account" }, 404)
+  const customerId = await customerIdFor(c)
+  if (!customerId) return c.json({ error: "no_account" }, 404)
   const blindpay = createBlindPay(c.env)
   try {
-    const accounts = await blindpay.listBankAccounts(receiverId)
+    const accounts = await blindpay.listBankAccounts(customerId)
     return c.json(accounts.map(maskRecipient), 200)
   } catch (err) {
     const { status, body } = blindpayErrorResponse(err)
@@ -172,12 +172,12 @@ recipients.openapi(createRecipientRoute, async (c) => {
     )
   }
 
-  const receiverId = await receiverIdFor(c)
-  if (!receiverId) return c.json({ error: "no_account" }, 404)
+  const customerId = await customerIdFor(c)
+  if (!customerId) return c.json({ error: "no_account" }, 404)
 
   const blindpay = createBlindPay(c.env)
   try {
-    const created = await blindpay.createBankAccount(receiverId, parsed.data)
+    const created = await blindpay.createBankAccount(customerId, parsed.data)
     return c.json(maskRecipient(created), 201)
   } catch (err) {
     const { status, body } = blindpayErrorResponse(err)
@@ -213,17 +213,17 @@ const deleteRoute = createRoute({
 })
 
 recipients.openapi(deleteRoute, async (c) => {
-  const receiverId = await receiverIdFor(c)
-  if (!receiverId) return c.json({ error: "no_account" }, 404)
+  const customerId = await customerIdFor(c)
+  if (!customerId) return c.json({ error: "no_account" }, 404)
   const id = c.req.param("id")
   if (!id) return c.json({ error: "no_account" }, 404)
   const blindpay = createBlindPay(c.env)
 
-  // Ownership check: BlindPay's path scopes by receiver, but verify here so a
+  // Ownership check: BlindPay's path scopes by customer, but verify here so a
   // mismatched parent never reaches upstream — defence-in-depth against an
   // attacker enumerating another user's `ba_…` ids.
   try {
-    const owned = await blindpay.listBankAccounts(receiverId)
+    const owned = await blindpay.listBankAccounts(customerId)
     if (!owned.some((a) => a.id === id)) {
       return c.json({ error: "recipient_not_found" }, 404)
     }
@@ -234,7 +234,7 @@ recipients.openapi(deleteRoute, async (c) => {
   }
 
   try {
-    await blindpay.deleteBankAccount(receiverId, id)
+    await blindpay.deleteBankAccount(customerId, id)
     return c.json({ ok: true as const }, 200)
   } catch (err) {
     const { status, body } = blindpayErrorResponse(err)

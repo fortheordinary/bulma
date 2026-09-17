@@ -7,7 +7,7 @@ Bulma is an agentic global account for remote workers. It is an API + CLI built 
 | Command                | Purpose                                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------------------- |
 | `bulma login`          | OAuth login → Bulma API session token cached on disk.                                                    |
-| `bulma onboard`        | Open BlindPay hosted KYC link → on `receiver.update approved` webhook, create EVM wallet + US virtual account, attach all to user. |
+| `bulma onboard`        | Open BlindPay hosted KYC link → on `customer.update approved` webhook, create EVM wallet + US virtual account, attach all to user. |
 | `bulma balance`        | Fetch USDC balance from user's Polygon wallet via RPC, display as USD.                                    |
 | `bulma account`        | Print US virtual account (routing + account #) for the authenticated user.                                |
 | `bulma recipient add`  | Interactive bank-account builder (ACH/Wire/RTP/PIX/SPEI/SWIFT/etc.) → POST to BlindPay + persist.        |
@@ -18,7 +18,7 @@ Bulma is an agentic global account for remote workers. It is an API + CLI built 
 ## Plan documents
 
 1. [architecture.md](architecture.md) — components, request flow, security model
-2. [data-model.md](data-model.md) — Drizzle schema (users, receivers, wallets, virtual accounts, bank accounts, quotes, payouts, referrals)
+2. [data-model.md](data-model.md) — Drizzle schema (users, customers, wallets, virtual accounts, bank accounts, quotes, payouts, referrals)
 3. [auth.md](auth.md) — OAuth provider choice, CLI device-flow login, session model
 4. [commands.md](commands.md) — per-command request/response shape, errors, edge cases
 5. [webhooks.md](webhooks.md) — BlindPay webhook intake (svix verification, idempotency, dispatch)

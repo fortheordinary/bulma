@@ -1,14 +1,14 @@
 import { z } from "zod"
 import type { Bindings } from "./env"
 
-const ExternalReceiverTokenResponse = z
+const ExternalCustomerTokenResponse = z
   .object({
     token: z.string(),
     expires_at: z.string().optional(),
   })
   .passthrough()
 
-const ReceiverSchema = z
+const CustomerSchema = z
   .object({
     id: z.string(),
     type: z.enum(["individual", "business"]),
@@ -114,7 +114,7 @@ const BankAccountSchema = z
   .passthrough()
 
 // Quote response. Amounts are integer cents; expires_at is ms epoch.
-// sender_amount = stablecoin the sender sends; receiver_amount = receiver's
+// sender_amount = stablecoin the sender sends; receiver_amount = customer's
 // local fiat. `contract` (ERC20 abi/address) is only needed for external
 // wallets — BlindPay-managed wallets are signed + gassed upstream.
 const QuoteResponse = z
@@ -146,7 +146,7 @@ const BlockchainSignMessageResponse = z
   })
   .passthrough()
 
-export type Receiver = z.infer<typeof ReceiverSchema>
+export type Customer = z.infer<typeof CustomerSchema>
 export type BlockchainWallet = z.infer<typeof BlockchainWalletResponse>
 export type VirtualAccount = z.infer<typeof VirtualAccountResponse>
 export type WalletBalance = z.infer<typeof WalletBalanceResponse>
@@ -193,8 +193,8 @@ export function createBlindPay(env: Bindings) {
     if (body !== undefined) init.body = JSON.stringify(body)
 
     // Only idempotent methods are safe to retry blindly. POSTs (quote / payout
-    // creation) carry no BlindPay idempotency header, so a retry could mint a
-    // duplicate — never retry them here.
+    // creation) are sent without BlindPay's opt-in `Idempotency-Key` header, so
+    // a retry could mint a duplicate — never retry them here.
     const retryable = method === "GET" || method === "DELETE"
     const maxAttempts = retryable ? MAX_RETRIES + 1 : 1
 
@@ -256,34 +256,34 @@ export function createBlindPay(env: Bindings) {
 
   return {
     /**
-     * Mint an external receiver token. Returned `token` is a JWT used to
+     * Mint an external customer token. Returned `token` is a JWT used to
      * build the hosted KYC invite URL.
      */
-    async createExternalReceiverToken(input: {
+    async createExternalCustomerToken(input: {
       type: "individual" | "business"
       kyc_type: "standard" | "enhanced"
     }) {
       return request(
         "POST",
-        `/instances/${instance}/external-receiver-token`,
-        ExternalReceiverTokenResponse,
+        `/instances/${instance}/external-customer-token`,
+        ExternalCustomerTokenResponse,
         input,
       )
     },
 
-    async getReceiver(receiverId: string) {
+    async getCustomer(customerId: string) {
       return request(
         "GET",
-        `/instances/${instance}/receivers/${receiverId}`,
-        ReceiverSchema,
+        `/instances/${instance}/customers/${customerId}`,
+        CustomerSchema,
       )
     },
 
-    async listReceivers() {
+    async listCustomers() {
       return request(
         "GET",
-        `/instances/${instance}/receivers`,
-        z.array(ReceiverSchema).or(z.object({ data: z.array(ReceiverSchema) })),
+        `/instances/${instance}/customers`,
+        z.array(CustomerSchema).or(z.object({ data: z.array(CustomerSchema) })),
       )
     },
 
@@ -292,72 +292,72 @@ export function createBlindPay(env: Bindings) {
      * key (no custody on Bulma's side). Returns a `bl_` id + on-chain address.
      */
     async createManagedWallet(input: {
-      receiverId: string
+      customerId: string
       name: string
       network: string
     }) {
-      const { receiverId, ...body } = input
+      const { customerId, ...body } = input
       return request(
         "POST",
-        `/instances/${instance}/receivers/${receiverId}/wallets`,
+        `/instances/${instance}/customers/${customerId}/wallets`,
         ManagedWalletResponse,
         body,
       )
     },
 
-    async listManagedWallets(receiverId: string) {
+    async listManagedWallets(customerId: string) {
       return request(
         "GET",
-        `/instances/${instance}/receivers/${receiverId}/wallets`,
+        `/instances/${instance}/customers/${customerId}/wallets`,
         z.array(ManagedWalletResponse),
       )
     },
 
-    async listBlockchainWallets(receiverId: string) {
+    async listBlockchainWallets(customerId: string) {
       return request(
         "GET",
-        `/instances/${instance}/receivers/${receiverId}/blockchain-wallets`,
+        `/instances/${instance}/customers/${customerId}/blockchain-wallets`,
         z.array(BlockchainWalletResponse),
       )
     },
 
-    async listVirtualAccounts(receiverId: string) {
+    async listVirtualAccounts(customerId: string) {
       return request(
         "GET",
-        `/instances/${instance}/receivers/${receiverId}/virtual-accounts`,
+        `/instances/${instance}/customers/${customerId}/virtual-accounts`,
         z.array(VirtualAccountResponse),
       )
     },
 
-    async getBlockchainSignMessage(receiverId: string) {
+    async getBlockchainSignMessage(customerId: string) {
       return request(
         "GET",
-        `/instances/${instance}/receivers/${receiverId}/blockchain-wallets/sign-message`,
+        `/instances/${instance}/customers/${customerId}/blockchain-wallets/sign-message`,
         BlockchainSignMessageResponse,
       )
     },
 
     async createBlockchainWallet(input: {
-      receiverId: string
+      customerId: string
       name: string
       network: string
       is_account_abstraction?: boolean
       address?: string
       signature_tx_hash?: string
     }) {
-      const { receiverId, ...body } = input
+      const { customerId, ...body } = input
       return request(
         "POST",
-        `/instances/${instance}/receivers/${receiverId}/blockchain-wallets`,
+        `/instances/${instance}/customers/${customerId}/blockchain-wallets`,
         BlockchainWalletResponse,
         body,
       )
     },
 
-    async getVirtualAccount(receiverId: string, virtualAccountId: string) {
+    async getVirtualAccount(customerId: string, virtualAccountId: string) {
       return request(
         "GET",
-        `/instances/${instance}/receivers/${receiverId}/virtual-accounts/${virtualAccountId}`,
+        `/instances/${instance}/customers/${customerId}/virtual-accounts/${virtualAccountId}`,
         VirtualAccountResponse,
       )
     },
@@ -366,50 +366,50 @@ export function createBlindPay(env: Bindings) {
      * Per-token balances for a managed wallet, keyed by token symbol. Amounts
      * are BlindPay-normalized decimals (token decimals already applied).
      */
-    async getWalletBalance(receiverId: string, walletId: string) {
+    async getWalletBalance(customerId: string, walletId: string) {
       return request(
         "GET",
-        `/instances/${instance}/receivers/${receiverId}/wallets/${walletId}/balance`,
+        `/instances/${instance}/customers/${customerId}/wallets/${walletId}/balance`,
         WalletBalanceResponse,
       )
     },
 
     async createVirtualAccount(input: {
-      receiverId: string
+      customerId: string
       token: string
       blockchain_wallet_id: string
       banking_partner: string
     }) {
-      const { receiverId, ...body } = input
+      const { customerId, ...body } = input
       return request(
         "POST",
-        `/instances/${instance}/receivers/${receiverId}/virtual-accounts`,
+        `/instances/${instance}/customers/${customerId}/virtual-accounts`,
         VirtualAccountResponse,
         body,
       )
     },
 
-    async createBankAccount(receiverId: string, body: Record<string, unknown>) {
+    async createBankAccount(customerId: string, body: Record<string, unknown>) {
       return request(
         "POST",
-        `/instances/${instance}/receivers/${receiverId}/bank-accounts`,
+        `/instances/${instance}/customers/${customerId}/bank-accounts`,
         BankAccountSchema,
         body,
       )
     },
 
-    async listBankAccounts(receiverId: string) {
+    async listBankAccounts(customerId: string) {
       return request(
         "GET",
-        `/instances/${instance}/receivers/${receiverId}/bank-accounts`,
+        `/instances/${instance}/customers/${customerId}/bank-accounts`,
         z.array(BankAccountSchema),
       )
     },
 
-    async deleteBankAccount(receiverId: string, bankAccountId: string) {
+    async deleteBankAccount(customerId: string, bankAccountId: string) {
       return request(
         "DELETE",
-        `/instances/${instance}/receivers/${receiverId}/bank-accounts/${bankAccountId}`,
+        `/instances/${instance}/customers/${customerId}/bank-accounts/${bankAccountId}`,
         z.unknown(),
       )
     },

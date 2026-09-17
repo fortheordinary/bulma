@@ -119,14 +119,14 @@ accounts.openapi(virtualRoute, async (c) => {
     .where(eq(userProfile.userId, user.id))
     .get()
 
-  if (!profile?.virtualAccountId || !profile.receiverId) {
+  if (!profile?.virtualAccountId || !profile.customerId) {
     return c.json({ error: "no_virtual_account" }, 404)
   }
 
   const blindpay = createBlindPay(c.env)
   try {
     const va = await blindpay.getVirtualAccount(
-      profile.receiverId,
+      profile.customerId,
       profile.virtualAccountId,
     )
     const rail = (r: BlindPayRail | undefined) =>
@@ -201,7 +201,7 @@ accounts.openapi(balanceRoute, async (c) => {
     .where(eq(userProfile.userId, user.id))
     .get()
 
-  if (!profile?.walletId || !profile.receiverId) {
+  if (!profile?.walletId || !profile.customerId) {
     return c.json({ error: "no_account" }, 404)
   }
 
@@ -214,7 +214,7 @@ accounts.openapi(balanceRoute, async (c) => {
   const blindpay = createBlindPay(c.env)
   try {
     const balances = await blindpay.getWalletBalance(
-      profile.receiverId,
+      profile.customerId,
       profile.walletId,
     )
     // Single token per instance (env.BLINDPAY_TOKEN): USDB on dev, USDC on prod.

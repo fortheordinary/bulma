@@ -12,16 +12,16 @@ All amounts are exchanged in **integer cents** between CLI and API. CLI formats 
 
 1. CLI: `POST /onboard/start` (no body, just session auth).
 2. API:
-   - If user already has `receivers` row with `approved` + wallet + virtual_account → return `{ state: "ready" }` and exit 0 with "Already onboarded".
-   - Otherwise, ensure a pending `receivers` row exists (create if missing).
-   - Generate a hosted KYC URL signed/scoped to that receiver — BlindPay's onboarding link (TBD: which exact endpoint; the skill docs describe API-only receiver creation, hosted link likely separate product → mark as [open-question](open-questions.md)).
-   - Return `{ state: "pending", verificationUri, receiverId }`.
+   - If user already has `customers` row with `approved` + wallet + virtual_account → return `{ state: "ready" }` and exit 0 with "Already onboarded".
+   - Otherwise, ensure a pending `customers` row exists (create if missing).
+   - Generate a hosted KYC URL signed/scoped to that customer — BlindPay's onboarding link (TBD: which exact endpoint; the skill docs describe API-only customer creation, hosted link likely separate product → mark as [open-question](open-questions.md)).
+   - Return `{ state: "pending", verificationUri, customerId }`.
 3. CLI: opens `verificationUri` in browser (`Bun.spawn(['open', url])` on macOS, `xdg-open` Linux, `start` Windows; fallback prints URL).
 4. CLI: poll `GET /onboard/status` every 3s up to 30 min.
 5. API status states:
    - `pending` — KYC not started or in review.
    - `approved` — KYC approved; wallet + virtual account provisioning in progress.
-   - `ready` — all three (receiver + wallet + virtual account) provisioned.
+   - `ready` — all three (customer + wallet + virtual account) provisioned.
    - `rejected` — KYC denied; include `reasons[]`.
 6. On `ready`, CLI prints summary:
    ```
@@ -44,7 +44,7 @@ All amounts are exchanged in **integer cents** between CLI and API. CLI formats 
 1. CLI: `GET /accounts/balance`.
 2. API:
    - Load `user_profile.wallet_id`.
-   - Call BlindPay `GET /receivers/{re_…}/blockchain-wallets/{bw_…}` to resolve the on-chain `address` (cached 5 min).
+   - Call BlindPay `GET /customers/{re_…}/blockchain-wallets/{bw_…}` to resolve the on-chain `address` (cached 5 min).
    - Resolve USDC balance — preferred path: BlindPay endpoint if/when available; fallback path: Polygon RPC `eth_call balanceOf(address)` against native USDC `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359`.
    - Convert 6-decimal token units → integer cents (divide by 10_000).
    - Return `{ amountUsdCents, asOf }`.
@@ -62,7 +62,7 @@ All amounts are exchanged in **integer cents** between CLI and API. CLI formats 
 ### Flow
 
 1. CLI: `GET /accounts/virtual`.
-2. API: load `user_profile.virtual_account_id`, call BlindPay `GET /receivers/{re_…}/virtual-accounts/{va_…}`, mask the account number in the response by default.
+2. API: load `user_profile.virtual_account_id`, call BlindPay `GET /customers/{re_…}/virtual-accounts/{va_…}`, mask the account number in the response by default.
 3. CLI prints, e.g.:
    ```
    US Account
@@ -96,7 +96,7 @@ Interactive. The CLI is the form.
 3. CLI prompts for each `fields[i]` — name, label, type, validation regex/zod schema, optional dropdown enum values.
 4. CLI: `POST /recipients` body `{ type, payload }`. Bulma API:
    - Validates payload with the matching Zod schema (server-side schemas are the single source of truth; `/recipients/types` is derived from them).
-   - Forwards to BlindPay `POST /instances/{in_…}/receivers/{re_…}/bank-accounts`.
+   - Forwards to BlindPay `POST /instances/{in_…}/customers/{re_…}/bank-accounts`.
    - Returns the new `ba_…` id + masked display fields directly from BlindPay's response.
 5. CLI prints `✓ Added recipient "Display Name" (••••5678)`.
 
@@ -120,7 +120,7 @@ Map directly from [bank-accounts.md](../.agents/skills/blindpay/references/essen
 ## `bulma recipient list`
 
 1. CLI: `GET /recipients`.
-2. API calls BlindPay `GET /instances/{in_…}/receivers/{re_…}/bank-accounts`, masks each row (last4 only, no full account numbers), returns the array.
+2. API calls BlindPay `GET /instances/{in_…}/customers/{re_…}/bank-accounts`, masks each row (last4 only, no full account numbers), returns the array.
 3. CLI prints table:
    ```
    ID         TYPE   CURRENCY  DISPLAY NAME            DEST
@@ -148,7 +148,7 @@ Map directly from [bank-accounts.md](../.agents/skills/blindpay/references/essen
    Rate:            1.0000 USD/USD
    ★ Apply free payout credit? (y/n)
    ```
-   On `y` if credit exists, recompute (call quote API again with `cover_fees: true` so receiver gets full amount), show updated breakdown.
+   On `y` if credit exists, recompute (call quote API again with `cover_fees: true` so customer gets full amount), show updated breakdown.
 5. CLI: confirm `Send payout? (y/n)`. On `y` → `POST /payouts/execute` body `{ quoteId, useReferralCredit: bool }`.
 6. API:
    - Reload quote, ensure not expired.
