@@ -52,6 +52,9 @@ export const referralCodes = sqliteTable("referral_codes", {
     onDelete: "set null",
   }),
   convertedAt: integer("converted_at"),
+  // Set when the email agent issued this code to an inbound sender (owner is
+  // null for system-issued invites). One live invite per email address.
+  issuedToEmail: text("issued_to_email"),
   createdAt: integer("created_at").notNull(),
 })
 
@@ -125,6 +128,31 @@ export const payouts = sqliteTable("payouts", {
   updatedAt: integer("updated_at").notNull(),
 })
 
+// Email agent audit log (src/lib/email-agent). One row per inbound message to
+// agent@bul.ma, including silently dropped spam, so per-sender rate limits and
+// Message-ID dedupe work without touching the AI.
+export const agentEmails = sqliteTable("agent_emails", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id").unique(),
+  fromEmail: text("from_email").notNull(),
+  subject: text("subject"),
+  // prefilter | model | none
+  stage: text("stage").notNull(),
+  // dropped | replied | error
+  decision: text("decision").notNull(),
+  // prefilter reason (auto_reply, heuristic_spam, …) or model category
+  // (invite_request, support, off_topic, spam, injection).
+  reason: text("reason"),
+  spamScore: integer("spam_score"),
+  inviteCodeId: text("invite_code_id").references(() => referralCodes.id, {
+    onDelete: "set null",
+  }),
+  promptTokens: integer("prompt_tokens"),
+  outputTokens: integer("output_tokens"),
+  receivedAt: integer("received_at").notNull(),
+  repliedAt: integer("replied_at"),
+})
+
 export type UserProfile = typeof userProfile.$inferSelect
 export type NewUserProfile = typeof userProfile.$inferInsert
 export type DeviceCode = typeof deviceCodes.$inferSelect
@@ -139,3 +167,5 @@ export type Quote = typeof quotes.$inferSelect
 export type NewQuote = typeof quotes.$inferInsert
 export type Payout = typeof payouts.$inferSelect
 export type NewPayout = typeof payouts.$inferInsert
+export type AgentEmail = typeof agentEmails.$inferSelect
+export type NewAgentEmail = typeof agentEmails.$inferInsert

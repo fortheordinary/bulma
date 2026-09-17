@@ -15,6 +15,7 @@ import { referrals } from "./routes/referrals"
 import { webhooks, redispatchFailedEvents } from "./routes/webhooks"
 import { reconcileStuckIdempotencyKeys } from "./lib/idempotency"
 import { reconcileStuckReferralCredits, runForfeitSweep } from "./lib/referrals"
+import { handleInboundEmail } from "./lib/email-agent/handler"
 import type { Bindings } from "./lib/env"
 
 const app = new OpenAPIHono<{
@@ -177,6 +178,23 @@ app.get("/docs", Scalar({ url: "/openapi.json" }))
 
 export default {
   fetch: app.fetch,
+  // Inbound mail for agent@bul.ma (Email Routing rule → this Worker). The
+  // pipeline in lib/email-agent decides: silently drop spam, answer Bulma
+  // questions, issue invite codes. Errors are logged, never rethrown, so a
+  // failing model call does not bounce the sender's email.
+  async email(
+    message: ForwardableEmailMessage,
+    env: Bindings,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
+    try {
+      await handleInboundEmail(message, env)
+    } catch (err) {
+      createLogger(env, { source: "email_agent" })
+        .withError(err)
+        .error("email_agent_unhandled")
+    }
+  },
   // Nightly Cron Trigger (see wrangler.toml [triggers]) — referral forfeit sweep.
   async scheduled(
     event: ScheduledController,
