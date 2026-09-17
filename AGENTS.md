@@ -87,11 +87,13 @@ Prefix table:
 | `referral_codes`   | `rc_`   | `rc_zT6yU1iO9pE4`      |
 | `referral_credits` | `rcr_`  | `rcr_aB3cD5fG7hJ9`     |
 | `webhook_events`   | n/a     | external `svix-id`     |
+| `agent_emails`     | `ae_`   | `ae_pQ7wX2mL9kR4`      |
 | `idempotency_keys` | n/a     | composite `<user_id>:<client_key>` |
 
 Rules:
 
 - **better-auth tables** (`user`, `session`, `account`, `verification`): configure better-auth's `advanced.database.generateId` to return the right prefix per table.
+- **Agent-issued invite codes** are ordinary `referral_codes` rows (`rc_` id) with `owner_user_id = NULL` and `issued_to_email` set. Never give them an owner.
 - **BlindPay-owned ids** keep BlindPay's exact format: `re_…` (receiver), `ba_…` (bank account), `bw_…` (wallet), `va_…` (virtual account), `po_…` (payout). Do **not** re-prefix or rewrap.
 - **`device_codes`**: `device_code` is 32-byte hex, `user_code` is 8-char alphanumeric — these are RFC 8628 device-flow protocol values, not row ids, and bypass this rule.
 - **Referral `code` column** (`referral_codes.code`) is the human-facing share code (6-char alphanumeric, excluding ambiguous I/O/0/1), not a row id, and also bypasses this rule.
@@ -194,6 +196,31 @@ Cloudflare-native paths, neither requiring a code change or a new dependency:
    tracking), wire `@sentry/cloudflare` — left out for now to avoid a new dep +
    `SENTRY_DSN` secret.
 
+## 4a. Email agent (agent@bul.ma)
+
+`apps/api/src/lib/email-agent/` answers every email sent to `agent@bul.ma` via the Worker's `email()` export (`src/index.ts`). Pipeline, in order, cheapest first:
+
+1. `spam.ts` deterministic prefilter (no AI): wrong recipient, bounces, own-domain loops, `noreply@`-style senders, `Auto-Submitted`/`List-*`/`Precedence: bulk`, DMARC fail, > 1 MiB, empty, blocked domains, keyword/link score ≥ 4. Dropped mail gets **no reply** (silent) and an `agent_emails` row.
+2. Message-ID dedupe + per-sender cap (`EMAIL_AGENT_MAX_PER_SENDER_DAY`, default 10 / 24h, counts dropped mail too).
+3. One Gemini Flash call (`gemini.ts`, `GEMINI_MODEL`, default `gemini-3.8-flash`, JSON schema-constrained) returns `{ category, wants_invite, reply, language }`. Categories: `invite_request | support | off_topic | spam | injection`.
+4. `off_topic` → fixed notice (`OFF_TOPIC_REPLY`). `spam`/`injection` → silent drop. `support`/`invite_request` → model reply passes `validateReply` (length, no code fences, only `bul.ma` links, no foreign emails, no crypto vocabulary per §1, no prompt-leak phrases) or falls back to `FALLBACK_REPLY`.
+5. Invites: **code, not the model, mints the code** (`invites.ts`, one live code per sender email, unowned `referral_codes` row) and appends `inviteBlock()`.
+6. Reply goes only to the SMTP **envelope** sender via the `EMAIL` binding (never `Reply-To`), threaded with `In-Reply-To`. Optional copy to `EMAIL_AGENT_FORWARD_TO`.
+
+Prompt-injection posture: email body is fenced as data (`fenceUntrusted`, sentinels stripped from content), zero-width/bidi chars removed, quoted history cut, body capped at 4000 chars, system prompt states the content is untrusted, output is schema-constrained, then validated again in code. Nothing model-written can add links, addresses, or codes.
+
+Reply style follows caveman (github.com/juliusbrussee/caveman): terse, fiat-only. Tune copy in `knowledge.ts`.
+
+Local test without real mail: run `wrangler dev`, then
+
+```bash
+curl -X POST 'http://localhost:8787/cdn-cgi/handler/email?from=you@example.com&to=agent@bul.ma' \
+  -H 'Content-Type: message/rfc822' \
+  --data-binary $'From: you@example.com\r\nTo: agent@bul.ma\r\nSubject: invite?\r\nMessage-ID: <t1@example.com>\r\n\r\nCan I get an invite?'
+```
+
+Cloudflare one-time setup (Email Routing rule, Email Sending domain, DMARC, secrets): `.files/cloudflare-email-agent-setup.md` in the working tree, or the PR description.
+
 ## 5. CI/CD
 
 Both `api` and `www` ship as Cloudflare Workers (`www` is a Workers Static Assets SPA — see `apps/www/wrangler.toml`). Two workflows:
@@ -212,7 +239,7 @@ Secrets are namespaced by app, mirroring the repo: **`apps/api` → `/api`, `app
 ### Required GitHub repo secrets
 - `INFISICAL_IDENTITY_ID` — OIDC machine identity ID
 - `INFISICAL_PROJECT_SLUG` — Infisical project slug
-- `CLOUDFLARE_API_TOKEN` — token with Workers Scripts:Edit + D1:Edit + Logpush:Edit
+- `CLOUDFLARE_API_TOKEN` — token with Workers Scripts:Edit + D1:Edit + Logpush:Edit (+ Email Routing / Email Sending Edit if wrangler manages the `send_email` binding on deploy)
 - `CLOUDFLARE_ACCOUNT_ID`
 
 ### Branches → envs

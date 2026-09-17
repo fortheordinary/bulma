@@ -57,6 +57,13 @@
       "when": 1780117292764,
       "tag": "0007_chilly_luminals",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789679857089,
+      "tag": "0008_open_tombstone",
+      "breakpoints": true
     }
   ]
 }
