@@ -76,6 +76,13 @@ jobs:
           BLINDPAY_HOSTED_INVITE_URL: ${{ env.BLINDPAY_HOSTED_INVITE_URL }}
           BLINDPAY_PARTNER_FEE_ID_FREE: ${{ env.BLINDPAY_PARTNER_FEE_ID_FREE }}
           BLINDPAY_PARTNER_FEE_ID_PAID: ${{ env.BLINDPAY_PARTNER_FEE_ID_PAID }}
+          # Email agent (agent@bul.ma). Optional keys fall back to code defaults
+          # when empty; the handler only needs GEMINI_API_KEY.
+          GEMINI_API_KEY: ${{ env.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ env.GEMINI_MODEL }}
+          EMAIL_AGENT_FORWARD_TO: ${{ env.EMAIL_AGENT_FORWARD_TO }}
+          EMAIL_AGENT_MAX_PER_SENDER_DAY: ${{ env.EMAIL_AGENT_MAX_PER_SENDER_DAY }}
+          EMAIL_AGENT_BLOCKED_DOMAINS: ${{ env.EMAIL_AGENT_BLOCKED_DOMAINS }}
         run: |
           cat <<EOF > /tmp/secrets.json
           {
@@ -92,11 +99,18 @@ jobs:
             "BLINDPAY_WEBHOOK_SECRET": "${BLINDPAY_WEBHOOK_SECRET}",
             "BLINDPAY_HOSTED_INVITE_URL": "${BLINDPAY_HOSTED_INVITE_URL}",
             "BLINDPAY_PARTNER_FEE_ID_FREE": "${BLINDPAY_PARTNER_FEE_ID_FREE}",
-            "BLINDPAY_PARTNER_FEE_ID_PAID": "${BLINDPAY_PARTNER_FEE_ID_PAID}"
+            "BLINDPAY_PARTNER_FEE_ID_PAID": "${BLINDPAY_PARTNER_FEE_ID_PAID}",
+            "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+            "GEMINI_MODEL": "${GEMINI_MODEL}",
+            "EMAIL_AGENT_FORWARD_TO": "${EMAIL_AGENT_FORWARD_TO}",
+            "EMAIL_AGENT_MAX_PER_SENDER_DAY": "${EMAIL_AGENT_MAX_PER_SENDER_DAY}",
+            "EMAIL_AGENT_BLOCKED_DOMAINS": "${EMAIL_AGENT_BLOCKED_DOMAINS}"
           }
           EOF
-          bunx wrangler secret bulk /tmp/secrets.json --env production
-          rm /tmp/secrets.json
+          # Optional keys may be unset in Infisical; wrangler rejects empty values.
+          jq 'with_entries(select(.value != ""))' /tmp/secrets.json > /tmp/secrets.filtered.json
+          bunx wrangler secret bulk /tmp/secrets.filtered.json --env production
+          rm /tmp/secrets.json /tmp/secrets.filtered.json
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v4

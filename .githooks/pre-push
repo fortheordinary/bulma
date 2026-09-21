@@ -7,11 +7,11 @@ status=0
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && continue            # branch delete — nothing to check
-  if [ "$remote_sha" = "$zero" ]; then
-    commits=$(git rev-list "$local_sha" --not --remotes)   # new branch: only its new commits
-  else
-    commits=$(git rev-list "$remote_sha..$local_sha")
-  fi
+  # Only commits not yet on any remote ref. After a rebase onto main the plain
+  # remote_sha..local_sha range would include main's own squash commits (GitHub
+  # sets committer=noreply@github.com on those), which are already published
+  # and not ours to rewrite.
+  commits=$(git rev-list "$local_sha" --not --remotes)
   for c in $commits; do
     ae=$(git log -1 --format='%ae' "$c")
     ce=$(git log -1 --format='%ce' "$c")

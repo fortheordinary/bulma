@@ -21,8 +21,19 @@ database_name = "bulma"
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
+# Email agent (src/lib/email-agent). Inbound: an Email Routing rule for
+# agent@bul.ma targets this Worker's `email()` handler (dashboard, one-time).
+# Outbound: Email Sending binding, locked to the agent address.
+# `remote = true` makes `wrangler dev` send real mail via the account binding;
+# keep it dev-only.
+[[send_email]]
+name = "EMAIL"
+allowed_sender_addresses = ["agent@bul.ma"]
+remote = true
+
 [vars]
 ENVIRONMENT = "development"
+EMAIL_AGENT_ADDRESS = "agent@bul.ma"
 
 # ── Production (deployed via `wrangler deploy --env production`) ──────────────
 [env.production]
@@ -47,5 +58,10 @@ database_name = "bulma"
 database_id = "bddbf6ac-a14e-4459-92ad-93c3f48d3ba5"
 migrations_dir = "migrations"
 
+[[env.production.send_email]]
+name = "EMAIL"
+allowed_sender_addresses = ["agent@bul.ma"]
+
 [env.production.vars]
 ENVIRONMENT = "production"
+EMAIL_AGENT_ADDRESS = "agent@bul.ma"
